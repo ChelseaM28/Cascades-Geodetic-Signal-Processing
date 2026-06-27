@@ -1,0 +1,50 @@
+{
+    "P349": [
+        "PBO Station Position Time Series.",
+        "Format Version, 1.2.0",
+        "Reference Frame, NAM14",
+        "4-character ID, P349",
+        "Station name, WonderlandCN2005",
+        "Begin Date, 2005-10-28",
+        "End Date, 2026-06-18",
+        "Release Date, 2026-06-19",
+        "Source file, P349.cwu.nam14.pos",
+        "Offset from source file, 39.31 mm North, -41.12 mm East, -10.53 mm Vertical"
+    ],
+    "P380": [
+        "PBO Station Position Time Series.",
+        "Format Version, 1.2.0",
+        "Reference Frame, NAM14",
+        "4-character ID, P380",
+        "Station name, OITCampus_OR2005",
+        "Begin Date, 2005-04-02",
+        "End Date, 2026-06-18",
+        "Release Date, 2026-06-19",
+        "Source file, P380.cwu.nam14.pos",
+        "Offset from source file, 34.14 mm North, -11.84 mm East, -7.69 mm Vertical"
+    ],
+    "P434": [
+        "PBO Station Position Time Series.",
+        "Format Version, 1.2.0",
+        "Reference Frame, NAM14",
+        "4-character ID, P434",
+        "Station name, Big_Chief_WA2008",
+        "Begin Date, 2008-06-20",
+        "End Date, 2026-06-18",
+        "Release Date, 2026-06-19",
+        "Source file, P434.cwu.nam14.pos",
+        "Offset from source file, 7.38 mm North, 15.51 mm East, -4.30 mm Vertical"
+    ],
+    "P441": [
+        "PBO Station Position Time Series.",
+        "Format Version, 1.2.0",
+        "Reference Frame, NAM14",
+        "4-character ID, P441",
+        "Station name, KendallEleWA2008",
+        "Begin Date, 2008-09-03",
+        "End Date, 2026-06-18",
+        "Release Date, 2026-06-19",
+        "Source file, P441.cwu.nam14.pos",
+        "Offset from source file, 10.44 mm North, 18.88 mm East, 0.93 mm Vertical"
+    ]
+}
