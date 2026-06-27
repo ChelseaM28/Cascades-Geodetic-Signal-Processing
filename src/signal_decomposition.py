@@ -22,7 +22,8 @@ For example, for a single epoch, we represent a displacement in the east directi
 
 y_east_i = a + bt_i + csin(2PIt_i) + dcos(2PIt_i) + esin(4PIt_i) + fcos(4PIt_i) , 
 
-Where a -> value of intercept @ t = 0
+Where 
+a -> value of intercept @ t = 0
 b -> linear coefficient of tectonic velocity (tectonic velocuty is constant)
 c & d -> used in combination as linear coefficients to weight the amplitude and phase of the annual cycle
 e & f -> used in combination as linear coefficients to weight the amplitude and phase of the SEMI-annual cycle
@@ -177,7 +178,13 @@ beta_north_p441, _, _, _ = np.linalg.lstsq(X_p441, y_north_p441, rcond=None)
 beta_east_p441, _, _, _ = np.linalg.lstsq(X_p441, y_east_p441, rcond=None) 
 beta_vert_p441, _, _, _ = np.linalg.lstsq(X_p441, y_vert_p441, rcond=None) 
 
-print("Completed building. design matrices.")
+'''
+I wrote print(beta_north_p349) and got
+[-3.33226909  6.91818185  0.03229881 -0.7911755   0.26515507 -0.06557577]
+Notice a = -3.33 despite the data showing a displacement of zero at this point. This is just noise around the intercept!
+'''
+
+print("Completed building design matrices.")
 
 
 #step 4: Characterize residuals
