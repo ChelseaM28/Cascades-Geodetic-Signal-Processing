@@ -18,6 +18,9 @@ I found/assume each displacement, y, can be approximated using
     - annual amplitude and phase (wiggle caused by snow melt/groundwater)
     - semiannual amplitude and phase (wiggle caused by other physcial processes)
 
+NOTE: In the future, I'd like to perform analyses to determine whether these are the best parameters for all 6 stations.
+In the meantime, I make this assumption to move forward with decomposition.
+
 For example, for a single epoch, we represent a displacement in the east direction as such:
 
 y_east_i = a + bt_i + csin(2PIt_i) + dcos(2PIt_i) + esin(4PIt_i) + fcos(4PIt_i) , 
