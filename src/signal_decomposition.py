@@ -325,7 +325,9 @@ for key, (freqs, power) in PSD_set.items():
     plt.savefig(str(key)+".png", dpi=120)'''
 
 
-#@Brief: Let's see if the power difference between the two frequency halves is truly downward then flat (colored then white).
+#@Brief: In this section I will be printing out many many plots.
+# Let's see if the power difference between the two frequency halves is truly downward then flat (colored then white).
+#I will use bins to stabilize the trend line.
 from scipy.stats import binned_statistic
 
 def bin_psd(freqs, power, n_bins=30):
@@ -339,6 +341,8 @@ def bin_psd(freqs, power, n_bins=30):
     
     return bin_centers, bin_means
 
+'''
+#Commenting this out to avoid further images!
 freqs, power = periodogram(residuals['p349_north'], fs=365.25)
 bin_centers, bin_means = bin_psd(freqs, power)
 
@@ -350,14 +354,80 @@ plt.ylabel("Power")
 plt.title("PSD — p349_north (binned)")
 plt.legend()
 plt.tight_layout()
-plt.savefig("p349_north_binned.png", dpi=120)
+plt.savefig("p349_north_binned.png", dpi=120)'''
 #Looking at the red line, I can clearly see that there is a flattening happening at around 10^(0.7). 
 # The flat section represent white noise, while the downward sloping section is colored. Maybe pink.
+
+'''NOTE: This shorter record for P441 East whas generally gaussian noise throughout the dataset. 
+         There is not enough of a clear downward slope for polyfit to catch colored noise
+
+#commenting out a plot again
+freqs, power = periodogram(residuals['p441_east'], fs=365.25)
+bin_centers, bin_means = bin_psd(freqs, power)
+
+plt.figure()
+plt.loglog(freqs[1:], power[1:], alpha=0.3, label="raw")
+plt.loglog(bin_centers, bin_means, color='red', linewidth=2, marker='o', label="binned mean")
+plt.axvline(5, color='gray', linestyle='--', label="cutoff (5 cyc/yr)")
+plt.xlabel("Frequency (cycles/year)")
+plt.ylabel("Power")
+plt.title("PSD — p441_east (binned)")
+plt.legend()
+plt.tight_layout()
+plt.savefig("p441_east_binned.png", dpi=120)'''
+
+
+'''
+Finishing off the rest of the plots.
+already_plotted = {"p349_north", "p441_east"}
+ 
+for key, value in residuals.items():
+    if key in already_plotted:
+        continue
+ 
+    freqs, power = periodogram(value, fs=365.25)
+    bin_centers, bin_means = bin_psd(freqs, power)
+ 
+    plt.figure()
+    plt.loglog(freqs[1:], power[1:], alpha=0.3, label="raw")
+    plt.loglog(bin_centers, bin_means, color='red', linewidth=2, marker='o', label="binned mean")
+    plt.axvline(5, color='gray', linestyle='--', label="cutoff (5 cyc/yr)")
+    plt.xlabel("Frequency (cycles/year)")
+    plt.ylabel("Power")
+    plt.title(f"PSD — {key} (binned)")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(f"{key}_binned.png", dpi=120)
+    plt.close()
+ 
+print("Done plotting remaining PSDs.")'''
+
+
+
 
 
 #NOTE:Let's set a line of demarcation at 10^(0.7), aorund 5 cycles/year
 
-#@Brief: This section will fit the...  
+#@Brief: This section will fit the binned data for frequencies below my cutoff (for colored noise)
+#For context, log(PSD)=log(A)−αlog(f). Recall we are plotting (frew, power) pairs. This function is in
+#y = mx + b format, with each term having the log applied.
+# α is the noise component/slope. log(f) is the input. log(A) is the intercept. log(PSD) is power.
 
+#NOTE: CHARACTERIZE NOISE TYPES AS FOLLOWS: white noise (α≈0), flicker (α≈1), & random walk (α≈2)
+#I need to find α for each direction for each station.
 
+#np.polyfit(x, y, 1) fits a line to the data and returns [slope, intercept]
+
+print("alpha for for frequencies less than 10^(0.7) are as follows:")
+for key, value in residuals.items():
+    freqs, power = periodogram(value, fs=365.25)
+    bin_centers, bin_means = bin_psd(freqs, power)
+    mask = bin_centers < 5 & (~np.isnan(bin_means))
+    fit_freqs = bin_centers[mask]
+    fit_power = bin_means[mask]
+    log_f = np.log10(fit_freqs)
+    log_p = np.log10(fit_power)
+    slope, intercept = np.polyfit(log_f, log_p, 1)
+    alpha = -slope
+    print(f"{key}: {alpha}")
 
