@@ -57,12 +57,15 @@ Got me?
 '''
 
 
-#Step 2: Load my data from the json files
+#Step 2: Import libraries and load my data from the json files
 import os
 os.chdir("/workspaces/GNSS/data")
 import pandas as pd
 import json
 import numpy as np
+#PSD imports
+from scipy.signal import periodogram
+import matplotlib.pyplot as plt
 
 with open("metadata.json", "r") as f:
     metadata = json.load(f)
@@ -148,7 +151,6 @@ y_north_p349 = p349['North (mm)'].values
 y_east_p349 = p349['East (mm)'].values
 y_vert_p349 = p349['Vertical (mm)'].values
 
-
 y_north_p380 = p380['North (mm)'].values
 y_east_p380 = p380['East (mm)'].values
 y_vert_p380 = p380['Vertical (mm)'].values
@@ -212,6 +214,8 @@ print(f"Finished building residual series.")
 
 #step 4: Characterization of noise reasoning 
 
+#@Brief: Explaining noise characterization 
+
 '''
 My residual series (my residual vectors) are all time series. 
 (In the Fourier sense, they are the sum of sinusoids.)
@@ -251,11 +255,104 @@ Ya feel?
 
 '''
 
+#@Brief: Scipy Periodogram
+#Periodogram takes my residual array and sampling frequency to output frequencies and power (variances)
+#I have one sample per day, and we want to define our frequency in cycles per year. 
+# let f = 365.25 (1/4 for leap years)
+
+'''
+freqs, power = periodogram(resid_p349_north, fs=365.25)
+I did print(freqs[:10]) and got:
+[0. 0.04854466 0.09708931 0.14563397 0.19417863 0.24272329 0.29126794 0.3398126  0.38835726 0.43690191]
+This array lists the frequencies of all found patterns. It lists each frequency in order. 
+The longest frequency, as we can see, has 0.049 cycles per year, which is apparently ~20.6 yrs.
+'''
+
+
+"""
+I did print(power[:10]) and got:
+[2.78104284e-31 6.19735966e+01 2.85698624e+01 4.04845588e+01
+ 2.65258065e+00 3.20378456e+00 1.05712033e+00 4.64806175e-01
+ 5.13599883e-01 1.69800855e+00]
+This array lists the variances of each pattern (the variances of each pattern) in the same order as pattern length.
+We see very high power for the first few frequencies with a large drop off near higher frequencies.
+Since the power is not relatively consistent throughout the array, we know the noise is not gaussion/random, 
+but instead colored. 
+
+*NOTE: for the frequency array, the first number is zero, suggesting a flat-line or no pattern. A constant.
+However, our modeled accounted for any constant term with the intercept column of X, so the periodogram will 
+pick up no variance for frequencies at 0. That's why the first (freq, power) term is (0, 2.78104284e-31) (basically 0,0)
+"""
+
 
 #step 5: Characterize residual noise using Power Spectral Density (PSD) plots
 
+residuals = {
+    "p349_north": resid_p349_north,
+    "p349_east": resid_p349_east,
+    "p349_vert": resid_p349_vert,
+    "p380_north": resid_p380_north,
+    "p380_east": resid_p380_east,
+    "p380_vert": resid_p380_vert,
+    "p434_north": resid_p434_north,
+    "p434_east": resid_p434_east,
+    "p434_vert": resid_p434_vert,
+    "p441_north": resid_p441_north,
+    "p441_east": resid_p441_east,
+    "p441_vert": resid_p441_vert,
+}
+
+PSD_set = {}
+
+for key, value in residuals.items(): #A mistake I make: must use residuals.items() not just the dict name
+    freqs, power = periodogram(value, fs=365.25)
+    PSD_set[key] = (freqs, power) #another mistake i make: freqs, power should be a tuple to allow for simple unpacking later on.
 
 
+print("Plotting loglog PSD plots.")
+'''for key, (freqs, power) in PSD_set.items():
+    plt.figure()
+    plt.loglog(freqs[1:], power[1:]) #We cannot plot the (0,0 pair)
+    plt.xlabel("Frequency (cycles/year)")
+    plt.ylabel("Power")
+    plt.title(f"PSD — {key}")
+    plt.tight_layout()
+    plt.savefig(str(key)+".png", dpi=120)'''
+#I'm only commenting that out so I don't continue to create more plots each time I run!
+
+#@Brief: Let's see if the power difference between the two frequency halves is truly downward then flat.
+from scipy.stats import binned_statistic
+
+def bin_psd(freqs, power, n_bins=30):
+    # skip the zero-frequency point
+    freqs = freqs[1:]
+    power = power[1:]
+    
+    log_bins = np.logspace(np.log10(freqs.min()), np.log10(freqs.max()), n_bins)
+    
+    bin_means, bin_edges, _ = binned_statistic(freqs, power, statistic='mean', bins=log_bins)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+    
+    return bin_centers, bin_means
+
+freqs, power = periodogram(residuals['p349_north'], fs=365.25)
+bin_centers, bin_means = bin_psd(freqs, power)
+
+plt.figure()
+plt.loglog(freqs[1:], power[1:], alpha=0.3, label="raw")
+plt.loglog(bin_centers, bin_means, color='red', linewidth=2, label="binned mean")
+plt.xlabel("Frequency (cycles/year)")
+plt.ylabel("Power")
+plt.title("PSD — p349_north (binned)")
+plt.legend()
+plt.tight_layout()
+plt.savefig("p349_north_binned.png", dpi=120)
+#I can clearly see that there is a flattening happening at around 10^(0.7). 
+# The flat section represent white noise, while the downward sloping section is colored. Maybe pink.
+
+
+#Let's set a line of demarcation at 10^(0.7), aorung 5 cycles/year
+#  
 
 
 
