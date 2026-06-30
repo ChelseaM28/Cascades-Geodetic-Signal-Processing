@@ -291,12 +291,15 @@ residuals = {
     "p349_north": resid_p349_north,
     "p349_east": resid_p349_east,
     "p349_vert": resid_p349_vert,
+
     "p380_north": resid_p380_north,
     "p380_east": resid_p380_east,
     "p380_vert": resid_p380_vert,
+
     "p434_north": resid_p434_north,
     "p434_east": resid_p434_east,
     "p434_vert": resid_p434_vert,
+
     "p441_north": resid_p441_north,
     "p441_east": resid_p441_east,
     "p441_vert": resid_p441_vert,
@@ -310,7 +313,9 @@ for key, value in residuals.items(): #A mistake I make: must use residuals.items
 
 
 print("Plotting loglog PSD plots.")
-'''for key, (freqs, power) in PSD_set.items():
+'''
+#I'm only commenting this out so I don't continue to create more plots each time I run!
+for key, (freqs, power) in PSD_set.items():
     plt.figure()
     plt.loglog(freqs[1:], power[1:]) #We cannot plot the (0,0 pair)
     plt.xlabel("Frequency (cycles/year)")
@@ -318,9 +323,9 @@ print("Plotting loglog PSD plots.")
     plt.title(f"PSD — {key}")
     plt.tight_layout()
     plt.savefig(str(key)+".png", dpi=120)'''
-#I'm only commenting that out so I don't continue to create more plots each time I run!
 
-#@Brief: Let's see if the power difference between the two frequency halves is truly downward then flat.
+
+#@Brief: Let's see if the power difference between the two frequency halves is truly downward then flat (colored then white).
 from scipy.stats import binned_statistic
 
 def bin_psd(freqs, power, n_bins=30):
@@ -329,7 +334,6 @@ def bin_psd(freqs, power, n_bins=30):
     power = power[1:]
     
     log_bins = np.logspace(np.log10(freqs.min()), np.log10(freqs.max()), n_bins)
-    
     bin_means, bin_edges, _ = binned_statistic(freqs, power, statistic='mean', bins=log_bins)
     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
     
@@ -347,12 +351,13 @@ plt.title("PSD — p349_north (binned)")
 plt.legend()
 plt.tight_layout()
 plt.savefig("p349_north_binned.png", dpi=120)
-#I can clearly see that there is a flattening happening at around 10^(0.7). 
+#Looking at the red line, I can clearly see that there is a flattening happening at around 10^(0.7). 
 # The flat section represent white noise, while the downward sloping section is colored. Maybe pink.
 
 
-#Let's set a line of demarcation at 10^(0.7), aorung 5 cycles/year
-#  
+#NOTE:Let's set a line of demarcation at 10^(0.7), aorund 5 cycles/year
+
+#@Brief: This section will fit the...  
 
 
 
