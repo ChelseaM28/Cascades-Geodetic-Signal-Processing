@@ -361,7 +361,7 @@ plt.savefig("p349_north_binned.png", dpi=120)'''
 #Looking at the red line, I can clearly see that there is a flattening happening at around 10^(0.7). 
 # The flat section represent white noise, while the downward sloping section is colored. Maybe pink.
 
-'''NOTE: This shorter record for P441 East whas generally gaussian noise throughout the dataset. 
+'''NOTE: This shorter record for P441 has generally gaussian noise throughout the dataset. 
          There is not enough of a clear downward slope for polyfit to catch colored noise
 
 #commenting out a plot again
