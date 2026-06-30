@@ -58,6 +58,8 @@ Got me?
 
 
 #Step 2: Load my data from the json files
+import os
+os.chdir("/workspaces/GNSS/data")
 import pandas as pd
 import json
 import numpy as np
@@ -160,7 +162,7 @@ y_east_p441 = p441['East (mm)'].values
 y_vert_p441 = p441['Vertical (mm)'].values
 
 
-#this next section gives me the coefficients for each direction for all four stations.
+#@Brief: this next section gives me the coefficients for each direction for all four stations.
 #The underscores get rid of unneeeded data (e.g., the residuals provided here are not a time series, but a summary stat, not helpful.)
 beta_north_p349, _, _, _ = np.linalg.lstsq(X_p349, y_north_p349, rcond=None) 
 beta_east_p349, _, _, _ = np.linalg.lstsq(X_p349, y_east_p349, rcond=None) 
@@ -186,5 +188,74 @@ Notice a = -3.33 despite the data showing a displacement of zero at this point. 
 
 print("Completed building design matrices.")
 
+#@Brief: This section will find the residuals for each groundstation's directions.
+#Residuals are milimeters of variation the model did not explain.
+#residuals=y−Xβ
 
-#step 4: Characterize residuals
+resid_p349_north = y_north_p349 - X_p349@beta_north_p349
+resid_p349_east = y_east_p349 - X_p349@beta_east_p349
+resid_p349_vert = y_vert_p349 - X_p349@beta_vert_p349
+
+resid_p380_north = y_north_p380 - X_p380@beta_north_p380
+resid_p380_east = y_east_p380 - X_p380@beta_east_p380
+resid_p380_vert = y_vert_p380 - X_p380@beta_vert_p380
+
+resid_p434_north = y_north_p434 - X_p434@beta_north_p434
+resid_p434_east = y_east_p434 - X_p434@beta_east_p434
+resid_p434_vert = y_vert_p434 - X_p434@beta_vert_p434
+
+resid_p441_north = y_north_p441 - X_p441@beta_north_p441
+resid_p441_east = y_east_p441 - X_p441@beta_east_p441
+resid_p441_vert = y_vert_p441 - X_p441@beta_vert_p441
+
+print(f"Finished building residual series.")
+
+#step 4: Characterization of noise reasoning 
+
+'''
+My residual series (my residual vectors) are all time series. 
+(In the Fourier sense, they are the sum of sinusoids.)
+Any pattern that repeats itself in this time series can be described by its frequency. 
+e.g.
+A pattern repeating every 10 years has 0.1 cycles per year.
+A patter repeating every 6 months has 2 cycles per year. 
+The lowest possible frequency for my data would have to happen every 20 years. Or one cycle over the course of 20 years.
+The Highest frequency would equal the sampling rate, so it would happen each day. One cycle each 2 days.
+
+Power Spectral Density (PSD) tells, for every frequency of sinusoid, how much power (variance) the signal
+contains at that frequency. PSD is a decomposition of the signal across different frequencies (patterns).
+
+
+The plot of the PSD on a loglog plot (loglog for easier fitting) reveals the type of noise I'm dealing with.
+
+Typically, when we estimate, for example, the velocity coefficient, the uncertainty of the 
+estimate depends on theresidual noise. Standard least squares assumes white (random/normal/gaussian) noise.
+With white noise, the more data one acquires, the more accurate a prediction becomes. 
+
+However, with colored (Pink/Flisker or Random Walk) noise, noise is not independent. 
+Each measuremnt is affected by the last. Physically, we attribute this noise to unmodeled 
+physical processes.
+
+By plotting the PSD's shape, I can determine the type of noise I am working with, construct the 
+proper covariance matrix, and plug that matrix into an appropriate uncertainty formula to get
+a MORE REALISTIC ESTIMATE OF THE ERROR IN OUR VELOCITY (trend) AND ANNUAL/SEMI-ANUAL PROCESSES.
+
+Otherwise, we'd have a pretty bad idea of how trashy our measurements are.
+
+*NOTE: We are not tracking the large signals of the North American tectonic plate's movement. We
+are tracking the deviation of stations' movement from the plate due to seasonal loading signals, post-earthquake
+deformation, etc. Recall NAM14 (the data I downloaded, see data folder) removes plate movement signals. 
+This essentially 'centers data around the mean,' preventing large tectonic movement from hiding smaller signals. 
+
+Ya feel?  
+
+'''
+
+
+#step 5: Characterize residual noise using Power Spectral Density (PSD) plots
+
+
+
+
+
+

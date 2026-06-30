@@ -71,20 +71,7 @@ Downloaded from the EarthScope GAGE facility (`gage-data.earthscope.org`). Files
 ## File Structure
 
 ```
-GNSS/
-├── data/
-│   ├── P349.cwu.nam14.csv
-│   ├── P380.cwu.nam14.csv
-│   ├── P434.cwu.nam14.csv
-│   └── P441.cwu.nam14.csv
-├── src/
-│   ├── clean.py                  # Data ingestion and cleaning
-│   └── signal_decomposition.py   # Decomposition and analysis
-├── p349.json                     # Cleaned station data (persistent)
-├── p380.json
-├── p434.json
-├── p441.json
-└── metadata.json                 # Reference frame info and station metadata
+WIP
 ```
 
 ---
