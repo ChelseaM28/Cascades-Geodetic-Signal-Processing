@@ -421,6 +421,8 @@ print("Done plotting remaining PSDs.")'''
 
 #np.polyfit(x, y, 1) fits a line to the data and returns [slope, intercept]
 
+alphas = {}
+
 print("alpha for for frequencies less than 10^(0.7) are as follows:")
 for key, value in residuals.items():
     freqs, power = periodogram(value, fs=365.25)
@@ -433,4 +435,28 @@ for key, value in residuals.items():
     slope, intercept = np.polyfit(log_f, log_p, 1)
     alpha = -slope
     print(f"{key}: {alpha}")
+    alphas[key] = alpha
 
+#@Brief: Persistent storage of alphas, Betas, residuals and X matrices
+
+with open("alphas.json", "w") as f:
+    json.dump(alphas, f, indent=2)
+
+with open("residuals.json", "w") as f:
+    #I have to use .tolist since numpy arrays can't be converted to JSON directly 
+    json.dump({k: v.tolist() for k, v in residuals.items()}, f, indent=2)
+
+betas = {
+    "p349_north": beta_north_p349, "p349_east": beta_east_p349, "p349_vert": beta_vert_p349,
+    "p380_north": beta_north_p380, "p380_east": beta_east_p380, "p380_vert": beta_vert_p380,
+    "p434_north": beta_north_p434, "p434_east": beta_east_p434, "p434_vert": beta_vert_p434,
+    "p441_north": beta_north_p441, "p441_east": beta_east_p441, "p441_vert": beta_vert_p441,
+}
+with open("betas.json", "w") as f:
+    json.dump({k: v.tolist() for k, v in betas.items()}, f, indent=2)
+
+X_matrices = {"p349": X_p349, "p380": X_p380, "p434": X_p434, "p441": X_p441}
+with open("X_matrices.json", "w") as f:
+    json.dump({k: v.tolist() for k, v in X_matrices.items()}, f, indent=2)
+
+print("Completed persistent storage of alphas, betas, residuals, and X matrices. Prepped for outlier detection.")
