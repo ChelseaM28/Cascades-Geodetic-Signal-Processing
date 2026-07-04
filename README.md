@@ -16,9 +16,9 @@ Motivated by the geodetic signal processing research of Dr. Amanda Thomas's Obse
 | Station | Location | Record Start |
 |--------|----------|--------------|
 | P349 | Shasta Lake, CA | 2005 |
-| P380 | Klamath Falls, OR | ~2007 |
+| P380 | Klamath Falls, OR | 2005 |
 | P434 | Stevens Pass, WA | 2008 |
-| P441 | Kendall, WA | ~2007 |
+| P441 | Kendall, WA | 2008 |
 
 Each station records daily displacement in three directions — North, East, and Vertical — in millimeters relative to a reference position. The NAM14 reference frame removes background North American plate motion, isolating residual signals of interest.
 
@@ -35,7 +35,7 @@ position(t) = a + b·t + c·sin(2πt) + d·cos(2πt) + e·sin(4πt) + f·cos(4π
 
 Where:
 - `a` — initial offset
-- `b·t` — linear tectonic velocity (mm/year)
+- `b` — linear tectonic velocity (mm/year)
 - `c, d` — annual seasonal signal (snow loading, hydrology)
 - `e, f` — semi-annual seasonal signal
 - `t` — decimal years since first observation
@@ -52,7 +52,7 @@ GNSS residuals are not white noise. This step characterizes the colored noise st
 This is the same noise characterization problem worked on operationally at NASA Goddard and JPL.
 
 ### Step 3 — Outlier and Change-Point Detection
-Residuals exceeding 3σ are flagged as outliers. The PELT algorithm (`ruptures` library) is applied to automatically detect position discontinuities — jumps in the time series caused by equipment changes or seismic events. Detected change-points are compared against documented offsets in `metadata.json`.
+Residuals exceeding 3σ are flagged as outliers. The PELT algorithm (`ruptures` library) is applied to automatically detect position discontinuities — jumps in the time series caused by equipment changes or seismic events. 
 
 ### Step 4 — Velocity Uncertainty Quantification
 Demonstrates that assuming white noise significantly underestimates velocity uncertainty. Quantifies the difference numerically under a realistic flicker + random walk noise model — the core statistical contribution of the project.
