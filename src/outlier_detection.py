@@ -13,6 +13,7 @@ os.chdir("/workspaces/GNSS/data")
 import pandas as pd
 import numpy as np  
 import json
+import matplotlib.pyplot as plt
 #For PELT change point detection
 import ruptures as rpt
 
@@ -44,6 +45,7 @@ stations = {'p349': p349, 'p380': p380, 'p434': p434, 'p441': p441}
 station_dates = {
     "p349": p349['Date'], "p380": p380['Date'], "p434": p434['Date'], "p441": p441['Date'],
 }
+print("Finished loading data")
 #Step 2: Outlier Detection Reasoning
 
 '''
@@ -86,13 +88,12 @@ OUTPUT: Optimal changepoint vector
 
 #Step 3: Implement PELT Change point model first so I can segment data for IQR and Z-score flagging
 
-signal = residuals['p349_north']  
+#@Brrief: This section will test the PELT algorithm outputs.
+'''signal = residuals['p349_north']  
 
 algo = rpt.Pelt(model="rbf").fit(signal)
 breaks = algo.predict(pen = 10)
 
-
-'''
 I wrote:
 print("Change points detected at indices:", breaks)
 print(len(residuals['p349_north']))
@@ -104,9 +105,9 @@ So day 515, day 895, day 1565, etc. NOT frequencies.
 Note, the last value is just the end of the time series, not a change point.
 '''
 
+#@Brief: In this section, I will look closely at the penalty values and determine whether it is reasonable.
+'''
 changepoints = {}
-
-
 for key, value in residuals.items():
     signal = value
     algo = rpt.Pelt(model="rbf").fit(signal)
@@ -117,12 +118,74 @@ for key, value in residuals.items():
     changepoints[key] = [dates[i] for i in breaks[:-1]]  # Exclude the last index which is the end of the series
     print(f"Change points detected for {key} at dates:", changepoints[key])
 
-'''
 My initial penalty is way too permissive. 
 Source: https://academic.oup.com/gji/article/204/1/480/635055?login=false
-With >700 days of data, a given station might have 1.8 changepoints on average. 
-49% caused by documented equipment changes, 31% by earthquakes, and 20% due to unknown causes."
+With at least 700 days (but usually more) of data, a given station might have 1.8 changepoints on average. 
+49% caused by documented equipment changes, 31% by earthquakes, and 20% due to unknown causes." --> [should discuss anomaly detection in context of space domain awareness in final write-up]
 NOTE: Next, I will experiment with penalty values and create charts and persistent storage of results.
 '''
+
+#The length of the dataset causes my computer to crash. 
+#To fix this, I run the PELT algo using a higher jump number (from baseline 5 to 10), meaning it will have fewer checks for changepoints. 
+#I'm beginning to see why computer scientists are all about efficiency/bestcase/worstcase scenarios.
+
+#@Brief: In this section, I determine the best range of penalty values (for a single station) before constructing a loop to run PELT on the residuals of all stations. 
+#Penalty values are unique to each station, but it is helpful to have a range of values to test.
+'''print(f"Length of residuals for p349_north: {len(residuals['p349_north'])}")
+signal = residuals['p349_north']
+pen_values = [110,112,114,116,118,120]
+counts = []
+algo = rpt.Pelt(model="rbf", jump=10).fit(signal)
+
+for pen in pen_values:
+    print("Beginning penalty tracking: ", pen)
+    breaks = algo.predict(pen=pen)
+    counts.append(len(breaks) - 1)
+
+plt.figure()
+#will try linear first, not loglog
+plt.plot(pen_values, counts, color='red', linewidth=2, marker='o', label="penalty vs. # of change points")
+plt.xlabel("Penalty Value")
+plt.ylabel("Change Points Detected")
+plt.title("PenaltiesXChange Points p349_north")
+plt.suptitle(f"jump={10}, model=rbf", fontsize=9, y=0.93)
+plt.legend()
+plt.tight_layout()
+plt.savefig("p349_north_penalties.png", dpi=120)
+print("Saved p349_north_penalties")
+'''
+
+
+#@Brief: This section will loop through all stations and create penalty plots
+pen_values = [110,112,114,116,118,120]
+
+for key, value in residuals.items(): #I always forget to add .items() !!
+    signal = value
+    jump = 20
+    algo = rpt.Pelt(model="rbf", jump=jump).fit(signal) #Adding larger jumps because I don't want the runtime to be too long.
+    counts = []
+    print(f"Drawing penalties for {key}")
+    for pen in pen_values:
+        print("Beginning penalty tracking: ", pen)
+        breaks = algo.predict(pen=pen)
+        counts.append(len(breaks) - 1)
+    plt.figure()
+    plt.plot(pen_values, counts, color='red', linewidth=2, marker='o', label = "Penalty vs. Detected Change Points")
+    plt.xlabel("Penalty Value")
+    plt.ylabel("Change Points Detected")
+    plt.title("Penalties X Change Points for " + key)
+    plt.suptitle(f"jump={jump}, model=rbf", fontsize=9, y=0.93)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(key + "_penalties.png", dpi=120)
+    print("Saved " + key + "_penalties.png")
+print("Finished drawing penalty plots for all stations")
+
+#I will fill out this dictionary by eye-balling the penalty plots
+final_penalties = {"p349_north": 119, "p349_east": 115, "p349_vert": None,
+                   "p380_north": None, "p380_east": None, "p380_vert": None,
+                   "p434_north": None, "p434_east": None, "p434_vert": None,
+                   "p441_north": None, "p441_east": None, "p441_vert": None,
+                   } #NOTE: Most graphs were flat lines. I need to implement a broader search. Left off here.
 
 #Step 4: Implement IQR and Modified Z-score Flagging  
