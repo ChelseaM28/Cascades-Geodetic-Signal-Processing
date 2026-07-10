@@ -220,48 +220,75 @@ print(f"Finished building residual series.")
 #@Brief: Explaining noise characterization 
 
 '''
-My residual series (my residual vectors) are all time series. 
-(In the Fourier sense, they are the sum of sinusoids.)
+--Signal Decomposition--
+My residual series (my residual vectors) are all time series. They are my target "signals" for analysis. 
+To characterize the residuals (characterize the noise), I will decompose the signal into its 'frequency' components,
+which can be understood as patterns within the data which characterize the noise.
+The underlying mechanic is a discrete (due to sampling) fourier transform which 
+transforms the displacement signal into frequencies. 
+The fourier transform allows non-obvious patterns within the signal to be revealed.
+
+
 Any pattern that repeats itself in this time series can be described by its frequency. 
 e.g.
 A pattern repeating every 10 years has 0.1 cycles per year.
 A patter repeating every 6 months has 2 cycles per year. 
-The lowest possible frequency for my data would have to happen every 20 years. Or one cycle over the course of 20 years.
-The Highest frequency would equal the sampling rate, so it would happen each day. One cycle each 2 days.
+The lowest possible frequency for my data would have to happen about every 20 years. Or one cycle over the course of 20 years.
+The Highest frequency I could detect would equal the sampling rate, so it would happen each day. One cycle each 2 days.
+(This is due to the effects of aliasing. At a minimum to detect a frequency, sampling rate must be twice the signal length/period)
 
-Power Spectral Density (PSD) tells, for every frequency of sinusoid, how much power (variance) the signal
-contains at that frequency. PSD is a decomposition of the signal across different frequencies (patterns).
+In the fourier sense, each signal is the sum of sinusoids of different frequencies. 
 
+Power Spectral Density (PSD) is a decomposition of the signal across different frequencies (patterns).
+PSD, tells, for every frequency of sinusoid, how much power the signal contains at that frequency. 
+Power is mathematically the average of the squared amplitude of a signal. 
+It is sometimes defined as energy per unit of time, which in this context can be analog to the 
+strength of the frquency/ the strength of the noise frequency. In this case I will refer to power as variance, as 
+variance is also the average of a squared quantity (avg of squared distance from the mean).
+The term density comes from dividing the power spectrum by equivalent noise bandwidth (approximation of power for a given frequency) 
+to lessen the effect of spectral leakage.
 
 The plot of the PSD on a loglog plot (loglog for easier fitting) reveals the type of noise I'm dealing with.
 
+--Types of noise--
 Typically, when we estimate, for example, the velocity coefficient, the uncertainty of the 
-estimate depends on theresidual noise. Standard least squares assumes white (random/normal/gaussian) noise.
+estimate depends on the residual noise. Standard least squares assumes white (random/normal/gaussian) noise.
 With white noise, the more data one acquires, the more accurate a prediction becomes. 
 
 However, with colored (Pink/Flisker or Random Walk) noise, noise is not independent. 
 Each measuremnt is affected by the last. Physically, we attribute this noise to unmodeled 
-physical processes.
+physical processes. 
 
 By plotting the PSD's shape, I can determine the type of noise I am working with, construct the 
 proper covariance matrix, and plug that matrix into an appropriate uncertainty formula to get
 a MORE REALISTIC ESTIMATE OF THE ERROR IN OUR VELOCITY (trend) AND ANNUAL/SEMI-ANUAL PROCESSES.
 
-Otherwise, we'd have a pretty bad idea of how trashy our measurements are.
+Otherwise, we'd have a pretty bad idea of how trashy our model is.
 
-*NOTE: We are not tracking the large signals of the North American tectonic plate's movement. We
+*NOTE: The model does not incorporate the comparatively large movements of the North American tectonic plate's movement. We
 are tracking the deviation of stations' movement from the plate due to seasonal loading signals, post-earthquake
 deformation, etc. Recall NAM14 (the data I downloaded, see data folder) removes plate movement signals. 
 This essentially 'centers data around the mean,' preventing large tectonic movement from hiding smaller signals. 
 
-Ya feel?  
+
 
 '''
 
 #@Brief: Scipy Periodogram
-#Periodogram takes my residual array and sampling frequency to output frequencies and power (variances)
+'''
+Periodogram takes my residual array and sampling frequency to output frequencies and power (variances)
+Periodogram allows me to construct a PSD graph without the need to write out the operations done to the amplitude spectrum dervied from the fourier transform. 
+Assumptions:
+Periodogram requires that the mean and the variance of the signal are the same no matter where I sample. (stationary process)
+For learning purposes I assume the stationarity assumption is met.
+It also requires a rectangular window (that amplitude and power calculations are not affected by, for example, an attenuated signal as in a hamming window).
+No attenuations or changes to the window were made, I assume the assumption is met.
+It also requires a discrete spectrum. As previously mentioned, the data is descrete, not continuous. Assumption satisfied.
+'''
+
+
 #I have one sample per day, and we want to define our frequency in cycles per year. 
-# let f = 365.25 (1/4 for leap years)
+# let f = 365.25 (0.25 for leap years)
 
 '''
 freqs, power = periodogram(resid_p349_north, fs=365.25)
@@ -285,6 +312,8 @@ but instead colored.
 *NOTE: for the frequency array, the first number is zero, suggesting a flat-line or no pattern. A constant.
 However, our modeled accounted for any constant term with the intercept column of X, so the periodogram will 
 pick up no variance for frequencies at 0. That's why the first (freq, power) term is (0, 2.78104284e-31) (basically 0,0)
+
+Flagging to potentially define the first number as DC
 """
 
 
@@ -310,7 +339,7 @@ residuals = {
 
 PSD_set = {}
 
-for key, value in residuals.items(): #A mistake I make: must use residuals.items() not just the dict name
+for key, value in residuals.items(): #A mistake I make: must use residuals.items() not just the dict name 'residuals'
     freqs, power = periodogram(value, fs=365.25)
     PSD_set[key] = (freqs, power) #another mistake i make: freqs, power should be a tuple to allow for simple unpacking later on.
 
@@ -460,3 +489,12 @@ with open("X_matrices.json", "w") as f:
     json.dump({k: v.tolist() for k, v in X_matrices.items()}, f, indent=2)
 
 print("Completed persistent storage of alphas, betas, residuals, and X matrices. Prepped for outlier detection.")
+
+
+
+'''
+//References//
+st-andrews 'spectral analysis' - https://www.st-andrews.ac.uk/~wjh/dataview/tutorials/sonogram.html
+gaussian waves.com 'Power and Energy of a Signal : Demystified' - https://www.gaussianwaves.com/2013/12/power-and-energy-of-a-signal/
+MATLAB 'Understanding Power Spectral Density and the Power Spectrum' - https://www.youtube.com/watch?v=pfjiwxhqd1M
+'''
