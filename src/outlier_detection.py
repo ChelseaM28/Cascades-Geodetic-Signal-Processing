@@ -6,7 +6,9 @@ Version 1
 Chelsea Momoh
 '''
 
-#Step 1: Load libraries and data
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+# Step 1: Load libraries and data
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 import os
 import time
 os.chdir("/workspaces/GNSS/data")
@@ -46,13 +48,15 @@ station_dates = {
     "p349": p349['Date'], "p380": p380['Date'], "p434": p434['Date'], "p441": p441['Date'],
 }
 print("Finished loading data")
-#Step 2: Outlier Detection Reasoning
 
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+# Step 2: Outlier Detection Reasoning
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 '''
 My residuals, the difference between my model and actual data, shoud be explained as noise, whether white or colored. 
 However, outliers will occur under a set of circumstances, and these events should be flagged:
-- Equipment changes/malfunctions, earthquakes, atmospheric noise, and glitches could afffect daa quality and lead to an outlier.
-This script will utilize two tools, IQR/Z-score flaggin and change-point detection (PELT) to flag outliers.
+- Equipment changes/malfunctions, earthquakes, atmospheric noise, and glitches could afffect data quality and lead to an outlier.
+This script will utilize two tools, IQR/Z-score flagging and change-point detection (PELT) to flag outliers.
 
 Source: https://pipiras.sites.oasis.unc.edu/
 Outlier: "have only an instantaneous effect" on data quality
@@ -85,10 +89,11 @@ OUTPUT: Optimal changepoint vector
 
 '''
 
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - # * - * - * - * - * - * - * - * - * - * 
+# Step 3: Implement PELT Change point model first so I can segment data for IQR and Z-score flagging
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - # * - * - * - * - * - * - * - * - * - *
 
-#Step 3: Implement PELT Change point model first so I can segment data for IQR and Z-score flagging
-
-#@Brrief: This section will test the PELT algorithm outputs.
+#@Brief: This section will test the PELT algorithm outputs.
 '''signal = residuals['p349_north']  
 
 algo = rpt.Pelt(model="rbf").fit(signal)
@@ -157,35 +162,110 @@ print("Saved p349_north_penalties")
 
 
 #@Brief: This section will loop through all stations and create penalty plots
-pen_values = [110,112,114,116,118,120]
+def pen_testing():
+    pen_values = []
 
-for key, value in residuals.items(): #I always forget to add .items() !!
-    signal = value
-    jump = 20
-    algo = rpt.Pelt(model="rbf", jump=jump).fit(signal) #Adding larger jumps because I don't want the runtime to be too long.
-    counts = []
-    print(f"Drawing penalties for {key}")
-    for pen in pen_values:
-        print("Beginning penalty tracking: ", pen)
-        breaks = algo.predict(pen=pen)
-        counts.append(len(breaks) - 1)
-    plt.figure()
-    plt.plot(pen_values, counts, color='red', linewidth=2, marker='o', label = "Penalty vs. Detected Change Points")
-    plt.xlabel("Penalty Value")
-    plt.ylabel("Change Points Detected")
-    plt.title("Penalties X Change Points for " + key)
-    plt.suptitle(f"jump={jump}, model=rbf", fontsize=9, y=0.93)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(key + "_penalties.png", dpi=120)
-    print("Saved " + key + "_penalties.png")
-print("Finished drawing penalty plots for all stations")
+    for key, value in residuals.items(): #I always forget to add .items() !!
+        if key == 'p434_east' or key == 'p434_vert' or key =='p441_east':
+            pen_values = np.arange(14, 80, 15)
+            jump = 20
+        else:
+            continue
+        
+        signal = value
+        
+        #model = rbf is 'radial basis function,' a model used to detect changepoints without white noise assumptions.
+        #The cost function used to detect changepoints is based on the similarity between groups of points rather than
+        #the squared difference between terms that least squares often utilizes.
+        #rbf (k(x_i, x_j) = exp( −||x_i − x_j||² / σ² )) will output values between 0 and 1 and compare similarity.
 
-#I will fill out this dictionary by eye-balling the penalty plots
-final_penalties = {"p349_north": 119, "p349_east": 115, "p349_vert": None,
-                   "p380_north": None, "p380_east": None, "p380_vert": None,
-                   "p434_north": None, "p434_east": None, "p434_vert": None,
-                   "p441_north": None, "p441_east": None, "p441_vert": None,
-                   } #NOTE: Most graphs were flat lines. I need to implement a broader search. Left off here.
+        #One issue with colored noise is changepoint detection might recognize walk noise as slow long term drift and 
+        #classify noise as a changeopint erroneously. rbf, as useful as it is, doesn't distinguish between drift caused by
+        #a physical process (like an earthquake) and the causeless drift of flicker/random walk. It seems to take human judgement 
+        #to differentiate between the two. Maybe that is why automation of change points is so difficult.
+        #I'd like to explore any resources giving ground truth about genuine changepoints. 
 
+        algo = rpt.Pelt(model="rbf", jump=jump).fit(signal) #Adding larger jumps because I don't want the runtime to be too long.
+        counts = []
+        print(f"Drawing penalties for {key}")
+        for pen in pen_values:
+            print("Beginning penalty tracking: ", pen)
+            breaks = algo.predict(pen=pen)
+            counts.append(len(breaks) - 1)
+        plt.figure()
+        plt.plot(pen_values, counts, color='red', linewidth=2, marker='o', label = "Penalty vs. Detected Change Points")
+        plt.xlabel("Penalty Value")
+        plt.ylabel("Change Points Detected")
+        plt.title("Penalties X Change Points for " + key)
+        plt.suptitle(f"jump={jump}, model=rbf", fontsize=9, y=0.93)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(key + "round_4_penalties.png", dpi=120)
+        print("round_4_Saved " + key + "_penalties.png")
+    print("Finished drawing penalty plots for all stations")
+
+#I will fill out this dictionary using visual representations: the penalty plots
+final_penalties = {"p349_north": 119, "p349_east": 115, "p349_vert": 140,
+                   "p380_north": 115, "p380_east": 115, "p380_vert": 55,
+                   "p434_north": 65, "p434_east": 48, "p434_vert": 44,
+                   "p441_north": 185, "p441_east": 35, "p441_vert": 14,
+                   } 
+
+
+'''
+I use the elbow method to select penalty scores for PELT.
+Elbow method: I look for a steep drop or a plateau surrounded by steep drops. I choose a penalty score 
+in the drop or within the plateu. This is to prevent permissive penalty scores (high number of detected changepoints suggest overfitting)
+and also prevents overly strict penalty scores (possibly missing out on real changepoints)
+
+The following are the ideal penalty ranges for each station based on penalty plots. 
+
+#--#ROUND 2#--#
+p349_vert: between 130 - 150 penalty score (stable plateu)
+
+p380_north: between 100 - 125 (stable plateu)
+p380_east: between 105 - 125 (steep drop)
+p380_vert: wide sweep again with range less less than 100. Ideally 50 - 100 (steep drop at beginning of graph) 
+
+p434_north: wide sweep again with range less less than 100. Ideally 50 - 100 (steep drop at beginning of graph) 
+p434_east: wide sweep again. Completely FLAT LINE. 0 changepoints detected
+p434_vert: wide sweep again. Completely FLAT LINE. 0 changepoints detected
+
+p441_north: between 180 - 200 (steep drop)
+p441_east: wide sweep again. Completely FLAT LINE. 0 changepoints detected
+p441_vert: wide sweep again. Completely FLAT LINE. 0 changepoints detected
+
+
+#--#ROUND 3#--#
+
+p380_east: 115 (flatline @ 2 changepoints)
+p380_vert: 55 (flatline @ 3 changepoints followed by steep drop from earlier)
+
+p434_north: 65 (flatline 1t 2 changepoints from 50 to 80)
+p434_east: wide sweep again at np.arange(15, 60, 10)
+p434_vert: wide sweep again at np.arange(14, 80, 15)
+
+p441_north: 185
+p441_east: wide sweep again at np.arange(14, 80, 15)
+p441_vert: 14
+
+#--#ROUND 4#--#
+p434_east: 48
+p434_vert: 44
+p441_east: 35
+
+'''
+
+
+#TODO: Now I can actually run PELT with the correct changepoints, cross reference against catalogues
+#      of true changepoint-causing physical events, align them with dates in the time series, and 
+#      plot them across a chart.
+
+
+
+
+
+
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 #Step 4: Implement IQR and Modified Z-score Flagging  
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -

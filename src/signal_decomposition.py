@@ -7,7 +7,9 @@ Version 1
 Chelsea Momoh
 '''
 
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 #Step 1: Mathematical Reasoning.
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 
 '''
 Our data consists of three vectors I will name y_north, y_east, and y_vertical. 
@@ -59,8 +61,10 @@ different B_east, B_vertical, B_north.
 Got me?
 '''
 
-
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 #Step 2: Import libraries and load my data from the json files
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+
 import os
 os.chdir("/workspaces/GNSS/data")
 import pandas as pd
@@ -87,8 +91,9 @@ p441 = pd.read_json("p441.json", orient="records")
 p441['Date'] = pd.to_datetime(p441['Date'])
 
 
-
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 #step 3: Fit the design models
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 
 #@Brief: This section will utilize datetime to perform datetime arithmetic and find t. 
 #The specific dataset I use is not arbitrary. Each station dataset has a different number of elapsed days, so i have to repeat this process four times.
@@ -215,7 +220,10 @@ resid_p441_vert = y_vert_p441 - X_p441@beta_vert_p441
 
 print(f"Finished building residual series.")
 
+
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 #step 4: Characterization of noise reasoning 
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 
 #@Brief: Explaining noise characterization 
 
@@ -316,8 +324,9 @@ pick up no variance for frequencies at 0. That's why the first (freq, power) ter
 Flagging to potentially define the first number as DC
 """
 
-
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -# * - * - * - * - * - * 
 #step 5: Characterize residual noise using Power Spectral Density (PSD) plots
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -# * - * - * - * - * - * 
 
 residuals = {
     "p349_north": resid_p349_north,
@@ -345,16 +354,6 @@ for key, value in residuals.items(): #A mistake I make: must use residuals.items
 
 
 print("Plotting loglog PSD plots.")
-'''
-#I'm only commenting this out so I don't continue to create more plots each time I run!
-for key, (freqs, power) in PSD_set.items():
-    plt.figure()
-    plt.loglog(freqs[1:], power[1:]) #We cannot plot the (0,0 pair)
-    plt.xlabel("Frequency (cycles/year)")
-    plt.ylabel("Power")
-    plt.title(f"PSD — {key}")
-    plt.tight_layout()
-    plt.savefig(str(key)+".png", dpi=120)'''
 
 
 #@Brief: In this section I will be printing out many many plots.
@@ -373,20 +372,7 @@ def bin_psd(freqs, power, n_bins=30):
     
     return bin_centers, bin_means
 
-'''
-#Commenting this out to avoid further images!
-freqs, power = periodogram(residuals['p349_north'], fs=365.25)
-bin_centers, bin_means = bin_psd(freqs, power)
 
-plt.figure()
-plt.loglog(freqs[1:], power[1:], alpha=0.3, label="raw")
-plt.loglog(bin_centers, bin_means, color='red', linewidth=2, label="binned mean")
-plt.xlabel("Frequency (cycles/year)")
-plt.ylabel("Power")
-plt.title("PSD — p349_north (binned)")
-plt.legend()
-plt.tight_layout()
-plt.savefig("p349_north_binned.png", dpi=120)'''
 #Looking at the red line, I can clearly see that there is a flattening happening at around 10^(0.7). 
 # The flat section represent white noise, while the downward sloping section is colored. Maybe pink.
 
