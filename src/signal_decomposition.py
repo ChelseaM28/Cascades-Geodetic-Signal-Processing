@@ -99,8 +99,13 @@ p441['Date'] = pd.to_datetime(p441['Date'])
 #The specific dataset I use is not arbitrary. Each station dataset has a different number of elapsed days, so i have to repeat this process four times.
 # The formula to convert the number of days to decimal years and get time deltas (changes in time) is given as:
 
+# TIME SERIES EXPLANATION
+#I take the date COLUMN as a series and subtract the value of the first row from EACH item in the series
 elapsed = p349['Date'] - p349['Date'].iloc[0] 
-t_p349 = elapsed.dt.days / 365.25
+#This returns a series of DURATIONS - time elapsed from day 1
+#Then, .dt.days ensures the durations are DAYS elapsed from day 1
+t_p349 = elapsed.dt.days / 365.25 
+#The final series, t_p349, is the number of decimal years of data this ground station spans. 
 
 elapsed = p380['Date'] - p380['Date'].iloc[0] 
 t_p380 = elapsed.dt.days / 365.25
