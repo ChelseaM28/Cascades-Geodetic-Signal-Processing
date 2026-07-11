@@ -105,7 +105,7 @@ elapsed = p349['Date'] - p349['Date'].iloc[0]
 #This returns a series of DURATIONS - time elapsed from day 1
 #Then, .dt.days ensures the durations are DAYS elapsed from day 1
 t_p349 = elapsed.dt.days / 365.25 
-#The final series, t_p349, is the number of decimal years of data this ground station spans. 
+#The final series, t_p349, is the number of decimal years elapsed since day 1. 
 
 elapsed = p380['Date'] - p380['Date'].iloc[0] 
 t_p380 = elapsed.dt.days / 365.25
