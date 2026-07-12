@@ -208,7 +208,7 @@ def pen_testing():
 final_penalties = {"p349_north": 119, "p349_east": 115, "p349_vert": 140,
                    "p380_north": 115, "p380_east": 115, "p380_vert": 55,
                    "p434_north": 65, "p434_east": 48, "p434_vert": 44,
-                   "p441_north": 185, "p441_east": 35, "p441_vert": 14,
+                   "p441_north": 185, "p441_east": 29, "p441_vert": 14,
                    } 
 
 
@@ -256,14 +256,59 @@ p441_east: 35
 
 '''
 
+#@Brief: This section will run PELT changepoint detection and align changepoints 
+#        with dates in each station's timeseries.
 
-#TODO: Now I can actually run PELT with the correct changepoints, cross reference against catalogues
-#      of true changepoint-causing physical events, align them with dates in the time series, and 
-#      plot them across a chart.
+changepoints = {}
+def pelt():
+    print("-- Beginning Changepoint Detection --")
+    for key, value in residuals.items():
+        signal = value
+        algo = rpt.Pelt(model="rbf", jump = 20).fit(signal)
+        breaks = algo.predict(pen=final_penalties[key])
+        
+        station = key.split("_")[0]
+        dates = station_dates[station]
+        changepoints[key] = [str(dates[i]) for i in breaks[:-1]]  # the date format wont work with json, but str will
+        print(f"Change points detected for {key} at dates:", changepoints[key])
+    
+    with open("changepoints.json", "w") as f:
+        json.dump(changepoints, f, indent=4)
+    print("-- Completed json changepoint records! --")
 
+def run_single_station(key, pen, jump=20):
+    signal = residuals[key]
+    algo = rpt.Pelt(model="rbf", jump=jump).fit(signal)
+    breaks = algo.predict(pen=pen)
 
+    station = key.split("_")[0]
+    dates = station_dates[station]
+    changepoints[key] = [str(dates[i]) for i in breaks[:-1]]
+    print(f"Change points detected for {key} at dates:", changepoints[key])
 
+    with open("changepoints.json", "w") as f:
+        json.dump(changepoints, f, indent=4)
+    print("-- Updated changepoints.json --")
 
+with open("changepoints.json", "r") as f:
+    changepoints = json.load(f)
+
+#Previously I chose the wrong penalty score- 35, which was too strict. 
+# i need to re-run with pen = 29, according to my penalty plot from round 4
+run_single_station('p441_east', pen=29)
+
+# NOTE: I set the jump value to a permanent 20. a small jump value was necessary 
+# to detect certain changepoints. where the penalty needed to be lower. But, 
+# realistically, computationally, having a jump size of 5 or 10 isn't realistic. 
+# I know the penalty score that is resonable for each station, which is arguably 
+# more important because the jump affects how often the model conducts the search, 
+# not whether the model will throw out a potential candidate due to an overly 
+# strict or permissive penalty. 
+# Actually, with more computational resources and time, I would like to have 
+# considered how long it takes the noise resulting from an earthquake to decay to 
+# ensure my jump values aren't too high. PELT has jump-limited imprecision, but my 
+# later per-epoch outlier detection methods will detect outliers within each regime
+# that the PELT may not have been able to catch.
 
 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
