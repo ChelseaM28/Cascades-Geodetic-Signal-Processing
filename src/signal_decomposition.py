@@ -265,7 +265,7 @@ The plot of the PSD on a loglog plot (loglog for easier fitting) reveals the typ
 
 --Types of noise--
 Typically, when we estimate, for example, the velocity coefficient, the uncertainty of the 
-estimate depends on the residual noise. Standard least squares assumes white (random/normal/gaussian) noise.
+estimate depends on the residual noise. Standard least squares assumes white (random/independent/uncorrelated) noise.
 With white noise, the more data one acquires, the more accurate a prediction becomes. 
 
 However, with colored (Pink/Flisker or Random Walk) noise, noise is not independent. 
