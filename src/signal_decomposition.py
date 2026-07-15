@@ -267,9 +267,11 @@ The plot of the PSD on a loglog plot (loglog for easier fitting) reveals the typ
 Typically, when we estimate, for example, the velocity coefficient, the uncertainty of the 
 estimate depends on the residual noise. Standard least squares assumes white (random/independent/uncorrelated) noise.
 With white noise, the more data one acquires, the more accurate a prediction becomes. 
+Note, I am not saying the residuals are ~N /gaussian. That is a separate assumption about the distribution of values
+the residuals are drawn from. The white noise assumption is specifically about whether residuals are correlated.
 
-However, with colored (Pink/Flisker or Random Walk) noise, noise is not independent. 
-Each measuremnt is affected by the last. Physically, we attribute this noise to unmodeled 
+However, with colored (Pink/Flicker or Random Walk) noise, noise is not independent. 
+A measuremnt is affected by the last measurement. Physically, we attribute this noise to unmodeled 
 physical processes. 
 
 By plotting the PSD's shape, I can determine the type of noise I am working with, construct the 
@@ -278,7 +280,7 @@ a MORE REALISTIC ESTIMATE OF THE ERROR IN OUR VELOCITY (trend) AND ANNUAL/SEMI-A
 
 Otherwise, we'd have a pretty bad idea of how trashy our model is.
 
-*NOTE: The model does not incorporate the comparatively large movements of the North American tectonic plate's movement. We
+*NOTE: The model does not incorporate the comparatively large movements of the North American tectonic plate. We
 are tracking the deviation of stations' movement from the plate due to seasonal loading signals, post-earthquake
 deformation, etc. Recall NAM14 (the data I downloaded, see data folder) removes plate movement signals. 
 This essentially 'centers data around the mean,' preventing large tectonic movement from hiding smaller signals. 
@@ -317,16 +319,16 @@ I did print(power[:10]) and got:
 [2.78104284e-31 6.19735966e+01 2.85698624e+01 4.04845588e+01
  2.65258065e+00 3.20378456e+00 1.05712033e+00 4.64806175e-01
  5.13599883e-01 1.69800855e+00]
-This array lists the variances of each pattern (the variances of each pattern) in the same order as pattern length.
+This array lists the variances of each pattern in the order corresponding to the frequencies list.
 We see very high power for the first few frequencies with a large drop off near higher frequencies.
-Since the power is not relatively consistent throughout the array, we know the noise is not gaussion/random, 
+Since the power is not relatively consistent throughout the array, we know the noise is not independent/random, 
 but instead colored. 
 
 *NOTE: for the frequency array, the first number is zero, suggesting a flat-line or no pattern. A constant.
-However, our modeled accounted for any constant term with the intercept column of X, so the periodogram will 
+However, our model accounted for any constant term with the intercept column of X, so the periodogram will 
 pick up no variance for frequencies at 0. That's why the first (freq, power) term is (0, 2.78104284e-31) (basically 0,0)
 
-Flagging to potentially define the first number as DC
+TODO: Flagging to potentially define the first number as DC. Need to look into this first.
 """
 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -# * - * - * - * - * - * 
@@ -381,7 +383,7 @@ def bin_psd(freqs, power, n_bins=30):
 #Looking at the red line, I can clearly see that there is a flattening happening at around 10^(0.7). 
 # The flat section represent white noise, while the downward sloping section is colored. Maybe pink.
 
-'''NOTE: This shorter record for P441 has generally gaussian noise throughout the dataset. 
+'''NOTE: This shorter record for P441 has generally white noise throughout the dataset. 
          There is not enough of a clear downward slope for polyfit to catch colored noise
 
 #commenting out a plot again
