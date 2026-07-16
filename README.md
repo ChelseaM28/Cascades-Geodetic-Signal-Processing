@@ -51,8 +51,8 @@ GNSS residuals are not white noise. This step characterizes the colored noise st
 
 This is the same noise characterization problem worked on operationally at NASA Goddard and JPL.
 
-### Step 3 — Outlier and Change-Point Detection
-Residuals exceeding 3σ are flagged as outliers. The PELT algorithm (`ruptures` library) is applied to automatically detect position discontinuities — jumps in the time series caused by equipment changes or seismic events. 
+### Step 3 — Change-Point Detection
+The PELT algorithm (`ruptures` library) is applied to automatically detect position discontinuities — jumps in the time series caused by equipment changes or seismic events. 
 
 ### Step 4 — Covariance Realism / Velocity Uncertainty Quantification
 Demonstrates that assuming white noise significantly underestimates velocity uncertainty. Refits station velocities via GLS under an empirically-derived noise covariance matrix; shows white-noise OLS underestimates formal velocity uncertainty relative to GLS, validated via Monte Carlo and a 1-DOF distributional (χ²) consistency test. 

@@ -1,6 +1,6 @@
-# outlier_detection.py
+# changepoint_detection.py
 ''' 
-This script will implement IQR, Z-score flagging, and a change-point detection model (PELT).
+This script will implement a change-point detection model (PELT). 
 Jun 30, 2026
 Version 1
 Chelsea Momoh
@@ -74,7 +74,7 @@ Methodology:
 In our case, we are measuring how far the residual is from the mean.
 z = (x - mean) / std
 
-    IQR will flag values outside a given range: [Q1 - 1.5*IQR, Q3 + 1.5*IQR] and does not assume Gaussian noise.
+    IQR would flag values outside a given range: [Q1 - 1.5*IQR, Q3 + 1.5*IQR] and does not assume Gaussian noise.
 However, it is less sensitive to outliers than Z-score (massive outliers will affect standard deviation more than a quartile).
 
     Source: https://www.lancaster.ac.uk/~romano/teaching/2425MATH337/4_algos_and_penalties.html
@@ -312,5 +312,10 @@ run_single_station('p441_east', pen=29)
 
 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
-#Step 4: Implement IQR and Modified Z-score Flagging  
+#Note on project limitation: Implementing IQR and Modified Z-score Flagging  
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+# Whether using OLS or GLS, outliers negatively impact model inferences and uncertainty. Identifying 
+# outliers and refitting data is a key part of statistical analysis. However, to preserve the scope 
+# of the project, I bypass full data refitting. The effects of this mean GLS uncertainty formula is
+# validated the assumed noise model, not a corrected noise model. With more time, I would certainly 
+# include additional outlier detection. 
