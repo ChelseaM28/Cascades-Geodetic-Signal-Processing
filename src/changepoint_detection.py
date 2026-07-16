@@ -85,13 +85,22 @@ to discourage the algorithm from continuosly adding changepoints (overfitting).
 PELT
 INPUT: Time series, penalty 
 OUTPUT: Optimal changepoint vector 
-
-
 '''
 
-# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - # * - * - * - * - * - * - * - * - * - * 
-# Step 3: Implement PELT Change point model first so I can segment data for IQR and Z-score flagging
-# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - # * - * - * - * - * - * - * - * - * - *
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - *
+# Note on project limitation: Implementing IQR and Modified Z-score Flagging  
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - *
+# Whether using OLS or GLS, outliers negatively impact model inferences and uncertainty. Identifying 
+# outliers and refitting data is a key part of statistical analysis. However, to preserve the scope 
+# of the project, I bypass full data refitting. The effects of this mean GLS uncertainty formula is
+# validated with the assumed noise model, not a corrected noise model. With more time, I would certainly 
+# include additional outlier detection. 
+
+
+
+# * - * - * - * - * - * - * - * - * - * - * 
+# Step 3: Implement PELT Change point model 
+# * - * - * - * - * - * - * - * - * - * - * 
 
 #@Brief: This section will test the PELT algorithm outputs.
 '''signal = residuals['p349_north']  
@@ -311,11 +320,3 @@ run_single_station('p441_east', pen=29)
 # that the PELT may not have been able to catch.
 
 
-# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
-#Note on project limitation: Implementing IQR and Modified Z-score Flagging  
-# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
-# Whether using OLS or GLS, outliers negatively impact model inferences and uncertainty. Identifying 
-# outliers and refitting data is a key part of statistical analysis. However, to preserve the scope 
-# of the project, I bypass full data refitting. The effects of this mean GLS uncertainty formula is
-# validated the assumed noise model, not a corrected noise model. With more time, I would certainly 
-# include additional outlier detection. 
