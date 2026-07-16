@@ -88,4 +88,5 @@ matplotlib
 ```
 
 Chelsea Momoh
+
 Statistics, UC Davis
