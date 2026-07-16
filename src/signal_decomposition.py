@@ -35,7 +35,8 @@ y -> millimiters of displacement in the east direction at the ith epoch
 
 We don't represent the quarterly cycle to avoid overfitting. Also because quarterly cycles don't have significant physical processes.
 
-So we'ev modeled a single epoch in the east direction in the equation above, but there are thousands of lines affecting abcde&f, and we can't solve for that 5000+ times for each line in the dataset.
+So we'ev modeled a single epoch in the east direction in the equation above, but there are thousands of lines affecting abcde&f, 
+and we can't solve for that 5000+ times for each line in the dataset.
 So instead, we solve all at once using a matrix formula.
 
 XB_east = Y_east
@@ -254,8 +255,9 @@ e.g.
 A pattern repeating every 10 years has 0.1 cycles per year.
 A patter repeating every 6 months has 2 cycles per year. 
 The lowest possible frequency for my data would have to happen about every 20 years. Or one cycle over the course of 20 years.
-The Highest frequency I could detect would equal the sampling rate, so it would happen each day. One cycle each 2 days.
-(This is due to the effects of aliasing. At a minimum to detect a frequency, sampling rate must be twice the signal length/period)
+The Highest frequency I could detect would be HALF the sampling rate, so one cycle each 2 days.
+(This is due to the effects of aliasing. At a minimum to detect a period, that period must be the length of the nyquist frequency. 
+
 
 In the fourier sense, each signal is the sum of sinusoids of different frequencies. 
 
