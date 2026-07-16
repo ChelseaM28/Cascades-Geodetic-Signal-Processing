@@ -54,8 +54,9 @@ This is the same noise characterization problem worked on operationally at NASA 
 ### Step 3 — Outlier and Change-Point Detection
 Residuals exceeding 3σ are flagged as outliers. The PELT algorithm (`ruptures` library) is applied to automatically detect position discontinuities — jumps in the time series caused by equipment changes or seismic events. 
 
-### Step 4 — Velocity Uncertainty Quantification
-Demonstrates that assuming white noise significantly underestimates velocity uncertainty. Quantifies the difference numerically under a realistic flicker + random walk noise model — the core statistical contribution of the project.
+### Step 4 — Covariance Realism / Velocity Uncertainty Quantification
+Demonstrates that assuming white noise significantly underestimates velocity uncertainty. Refits station velocities via GLS under an empirically-derived noise covariance matrix; shows white-noise OLS underestimates formal velocity uncertainty relative to GLS, validated via Monte Carlo and a 1-DOF distributional (χ²) consistency test. 
+
 
 ### Step 5 — Visualization and Report
 Clean plots of raw time series, decomposed components, residuals, PSD, and change-points for all stations. Accompanied by a 4-page technical report covering methodology, assumptions, results, and limitations.
