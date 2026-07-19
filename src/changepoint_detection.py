@@ -92,8 +92,8 @@ OUTPUT: Optimal changepoint vector
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - *
 # Whether using OLS or GLS, outliers negatively impact model inferences and uncertainty. Identifying 
 # outliers and refitting data is a key part of statistical analysis. However, to preserve the scope 
-# of the project, I bypass full data refitting. The effects of this mean GLS uncertainty formula is
-# validated with the assumed noise model, not a corrected noise model. With more time, I would certainly 
+# of the project, I bypass full data refitting. The effects of this mean OLS-based alpha is
+# is based upon the assumed noise model, not a corrected noise model. With more time, I would certainly 
 # include additional outlier detection. 
 
 
