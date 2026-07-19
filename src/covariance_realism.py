@@ -4,14 +4,14 @@
 
 
 ### Motivating publications:
+# Bos Tero, Machiel Simon, et al. “Introduction to Geodetic Time Series Analysis.” Geodetic Time Series Analysis in 
+#        Earth, Springer Verlag, Aug. 2019.
 # Working Group on Covariance Realism. (n.d.). Covariance and Uncertainty 
 #        Realism in Space Surveillance and Tracking (A. B. Poore, J. M. Aristoff, 
 #        & J. T. Horwood, Eds.). Air Force Space Command Astrodynamics 
 #        Innovation Committee.
 # Zaidi, Waqar H. , and Matthew D. Hejduk. Earth Observing System Covariance Realism. American Institute 
 #        of Aeronautics and Astronautics, 1 Mar. 2016.
-# Bos Tero, Machiel Simon, et al. “Introduction to Geodetic Time Series Analysis.” Geodetic Time Series Analysis in 
-#        Earth, Springer Verlag, Aug. 2019.
 #
 #
 # Please NOTE that Poore et al quantifies uncertainty against REAL truth, while my uncertainty can
