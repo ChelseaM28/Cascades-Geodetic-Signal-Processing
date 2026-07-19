@@ -55,7 +55,7 @@ This is the same noise characterization problem worked on operationally at NASA 
 The PELT algorithm (`ruptures` library) is applied to automatically detect position discontinuities — jumps in the time series caused by equipment changes or seismic events. 
 
 ### Step 4 — Covariance Realism / Velocity Uncertainty Quantification
-Demonstrates that assuming white noise significantly underestimates velocity uncertainty. Refits station velocities via GLS under an empirically-derived noise covariance matrix; shows white-noise OLS underestimates formal velocity uncertainty relative to GLS, validated via Monte Carlo and a 1-DOF distributional (χ²) consistency test. 
+Demonstrates that assuming white noise significantly underestimates velocity uncertainty. Refits station velocities via GLS under an parametrically-derived noise covariance matrix; shows white-noise OLS underestimates formal velocity uncertainty relative to GLS, validated via Monte Carlo and a 1-DOF distributional (χ²) consistency test. 
 
 
 ### Step 5 — Visualization and Report
