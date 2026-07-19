@@ -1,6 +1,6 @@
 ### covariance_realism.py
 # This script will quantify the uncertainty of my velocity estimates using a distribution comparison 
-# of Monte-Carlo samples of uncertainty realism metrics against the matching chi-squared distribution. 
+# of Monte-Carlo samples of uncertainty realism metrics (at n = 1) against the matching chi-squared distribution. 
 
 
 ### Motivating publications:
@@ -21,7 +21,7 @@
 
 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
-# Step 1: Load libraries and data
+# Step 0: Load libraries and data
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 import os
 import time
@@ -66,9 +66,94 @@ station_dates = {
 }
 print("Finished loading data")
 
+
+
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
-# Step 1: Construct Covariance Matrix from OLS
+# Mathematical Reasoning for Uncertainty Realism Script
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 
+#Among everything, be sure to explain why z² is the Mahalanobis Distance Metric from Poore et al. at n = 1
+
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+# Step 1: Parametric Estimation of C for GLS
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+
+#Brief: This section will use define a noise model using discoveries from OLS
+
+
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+# Step 2: Define OLS and GLS equations.
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+
+#@Brief: Plain OLS and GLS Equations (not specific, only general representatives):
+#OLS: 
+#GLS: 
+#The difference between the two is the weighted component of GLS and its assumptions, etc etc...
+
+#@Brief: This section will verify all assumptions for my methodology are met before running Monte Carlo.
+
+
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+# Step 3: Use Monte Carlo to Generate N Synthetic Ground Station Series
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+
+#Brief: This section will set the TRUE velocity that OLS and GLS will conform to
+VELOCITY = _
+N = _
+
+#Brief: This section generate N synthetic ground station motion time series.
+
+# * - * - * - * - * - * - * - * - * - * - * - *
+# Step 4: Refit OLS/GLS on each Series   
+# * - * - * - * - * - * - * - * - * - * - * _ *
+
+#@Brief: Data manipulation to format for matrix calculations
+
+#@Brief: This section will recover velocity estimates for OLS and GLS from each simulation
+
+#Brief: This section will recover σ²_OLS and σ²_GLS from each simulation
+
+
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+# Step 5: Create Normalized σ² Vectors (Uncertainty Realism Metrics) for Comparison 
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+# It is helpful to recall that z² is the Mahalanobis Distance Metric from Poore et al. at n = 1
+
+
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+# Step 6: Plot Velocity Estimates on Histogram (Not necessary, purely as visual additions)
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+
+
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+# Step 7: Distribution Comparison (FOCAL POINT OF PROJECT)
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+
+#@Brief: This section will plot OLS/GLS z² values on a histogram
+
+
+#@Brief: This section will perform a goodness of fit test to confirm visual results
+
+
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+# Analysis of the significance of the OLS/GLS σ² histograms
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+
+
+
+
+# What a doozy!
+
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+# Future Modifications For this project
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+
+# 1. Array Procesing Extension across all stations
+# 2. Utilize MLE rather than periodogram slope to define alpha 
+#       (also k in some literature) to build parametric C. See Tero et al.
+# 3. Pull USGS earthquake catalogue to confirm changepoints
+# 4. Segment residual regimes between changepoints, then flag outliers (IQR/ Z-score)
+# 5. Model diagnostics (Model-order, multicollinearity, etc)
+# 6. Wrap project as real-time dynamic pipeline
 
 
