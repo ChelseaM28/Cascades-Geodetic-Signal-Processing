@@ -143,31 +143,8 @@ NOTE: Next, I will experiment with penalty values and create charts and persiste
 #To fix this, I run the PELT algo using a higher jump number (from baseline 5 to 10), meaning it will have fewer checks for changepoints. 
 #I'm beginning to see why computer scientists are all about efficiency/bestcase/worstcase scenarios.
 
-#@Brief: In this section, I determine the best range of penalty values (for a single station) before constructing a loop to run PELT on the residuals of all stations. 
-#Penalty values are unique to each station, but it is helpful to have a range of values to test.
-'''print(f"Length of residuals for p349_north: {len(residuals['p349_north'])}")
-signal = residuals['p349_north']
-pen_values = [110,112,114,116,118,120]
-counts = []
-algo = rpt.Pelt(model="rbf", jump=10).fit(signal)
-
-for pen in pen_values:
-    print("Beginning penalty tracking: ", pen)
-    breaks = algo.predict(pen=pen)
-    counts.append(len(breaks) - 1)
-
-plt.figure()
-#will try linear first, not loglog
-plt.plot(pen_values, counts, color='red', linewidth=2, marker='o', label="penalty vs. # of change points")
-plt.xlabel("Penalty Value")
-plt.ylabel("Change Points Detected")
-plt.title("PenaltiesXChange Points p349_north")
-plt.suptitle(f"jump={10}, model=rbf", fontsize=9, y=0.93)
-plt.legend()
-plt.tight_layout()
-plt.savefig("p349_north_penalties.png", dpi=120)
-print("Saved p349_north_penalties")
-'''
+#@Brief: In this section, I determined the best range of penalty values since penalty values are unique to each station
+# (For code cleanliness, moved to scratch.py)
 
 
 #@Brief: This section will loop through all stations and create penalty plots

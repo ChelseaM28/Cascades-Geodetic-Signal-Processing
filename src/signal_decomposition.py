@@ -203,11 +203,6 @@ beta_north_p441, _, _, _ = np.linalg.lstsq(X_p441, y_north_p441, rcond=None)
 beta_east_p441, _, _, _ = np.linalg.lstsq(X_p441, y_east_p441, rcond=None) 
 beta_vert_p441, _, _, _ = np.linalg.lstsq(X_p441, y_vert_p441, rcond=None) 
 
-'''
-I wrote print(beta_north_p349) and got
-[-3.33226909  6.91818185  0.03229881 -0.7911755   0.26515507 -0.06557577]
-Notice a = -3.33 despite the data showing a displacement of zero at this point. This is just noise around the intercept!
-'''
 
 print("Completed building design matrices.")
 
@@ -364,15 +359,15 @@ residuals = {
 
 PSD_set = {}
 
-for key, value in residuals.items(): #A mistake I make: must use residuals.items() not just the dict name 'residuals'
+for key, value in residuals.items(): #Remember, must use residuals.items() not just the dict name 'residuals'
     freqs, power = periodogram(value, fs=365.25)
-    PSD_set[key] = (freqs, power) #another mistake i make: freqs, power should be a tuple to allow for simple unpacking later on.
+    PSD_set[key] = (freqs, power) #Remember, freqs, power should be a tuple to allow for simple unpacking later on.
 
 
 print("Plotting loglog PSD plots.")
 
 
-#@Brief: In this section I will be printing out many many plots.
+#@Brief: In this section I will be printing out many many plots. (Most loops have been moved to scratch.py)
 # Let's see if the power difference between the two frequency halves is truly downward then flat (colored then white).
 #I will use bins to stabilize the trend line.
 from scipy.stats import binned_statistic
@@ -392,51 +387,8 @@ def bin_psd(freqs, power, n_bins=30):
 #Looking at the red line, I can clearly see that there is a flattening happening at around 10^(0.7). 
 # The flat section represent white noise, while the downward sloping section is colored. Maybe pink.
 
-'''NOTE: This shorter record for P441 has generally white noise throughout the dataset. 
-         There is not enough of a clear downward slope for polyfit to catch colored noise
-
-#commenting out a plot again
-freqs, power = periodogram(residuals['p441_east'], fs=365.25)
-bin_centers, bin_means = bin_psd(freqs, power)
-
-plt.figure()
-plt.loglog(freqs[1:], power[1:], alpha=0.3, label="raw")
-plt.loglog(bin_centers, bin_means, color='red', linewidth=2, marker='o', label="binned mean")
-plt.axvline(5, color='gray', linestyle='--', label="cutoff (5 cyc/yr)")
-plt.xlabel("Frequency (cycles/year)")
-plt.ylabel("Power")
-plt.title("PSD — p441_east (binned)")
-plt.legend()
-plt.tight_layout()
-plt.savefig("p441_east_binned.png", dpi=120)'''
-
-
-'''
-Finishing off the rest of the plots.
-already_plotted = {"p349_north", "p441_east"}
- 
-for key, value in residuals.items():
-    if key in already_plotted:
-        continue
- 
-    freqs, power = periodogram(value, fs=365.25)
-    bin_centers, bin_means = bin_psd(freqs, power)
- 
-    plt.figure()
-    plt.loglog(freqs[1:], power[1:], alpha=0.3, label="raw")
-    plt.loglog(bin_centers, bin_means, color='red', linewidth=2, marker='o', label="binned mean")
-    plt.axvline(5, color='gray', linestyle='--', label="cutoff (5 cyc/yr)")
-    plt.xlabel("Frequency (cycles/year)")
-    plt.ylabel("Power")
-    plt.title(f"PSD — {key} (binned)")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(f"{key}_binned.png", dpi=120)
-    plt.close()
- 
-print("Done plotting remaining PSDs.")'''
-
-
+# NOTE: This shorter record for P441 has generally white noise throughout the dataset. 
+#         There is not enough of a clear downward slope for polyfit to catch colored noise
 
 
 
