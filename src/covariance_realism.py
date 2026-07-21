@@ -1,4 +1,8 @@
 ### covariance_realism.py
+
+# !! ----------- WORK IN PROGRESS ----------- !!
+
+
 # This script will quantify the uncertainty of my velocity estimates using a distribution comparison 
 # of Monte-Carlo samples of uncertainty realism metrics (at n = 1) against the matching chi-squared distribution. 
 # Jul 18, 2026
