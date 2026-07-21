@@ -32,8 +32,8 @@ import pandas as pd
 import numpy as np  
 import json
 import matplotlib.pyplot as plt
-#For PELT change point detection
-import ruptures as rpt
+import math
+from scipy.signal import periodogram
 
 with open("alphas.json", "r") as f:
     alphas = json.load(f)
@@ -66,6 +66,21 @@ stations = {'p349': p349, 'p380': p380, 'p434': p434, 'p441': p441}
 station_dates = {
     "p349": p349['Date'], "p380": p380['Date'], "p434": p434['Date'], "p441": p441['Date'],
 }
+
+station_lengths = {
+    p349: p349.length(),
+    p380: p380.length(),
+    p434: p434.length(), 
+    p441: p441.length()
+}
+
+#TODO: All k values are to be replaced with values from "alphas" list.
+station_slopes= {#TODO: All k values are to be replaced with values from "alphas" list.
+    "p349_east": k, "p349_north": k, "p349_vert": k,
+    "p380_north": k, "p380_east": k, "p380_vert": k,
+    "p434_north": k, "p434_east": k, "p434_vert": k,
+    "p441_north": k, "p441_east": k, "p441_vert": k,
+}
 print("Finished loading data")
 
 
@@ -76,15 +91,53 @@ print("Finished loading data")
 
 #Among everything, be sure to explain why z² is the Mahalanobis Distance Metric from Poore et al. at n = 1
 
+# STEP 1: PARAMETRIC ESTIMATION OF C for GLS
+
+
+# STEP 3: CREATING COLORED MONTE CARLO NOISE
+#To find the σ^2_colored and σ^2_white, I look at the power of each PSD graph at the 
+# intercept (where sampling frequency = frequency) and at the flattening point (line of demarcation which
+# I already set to ~5 cycles/yr)
+#looking back at my PSD graphs, var_white will eb the power located at the frewuency of 10^(0.7)
+#var_colored will be the power at the frequency of 365.25 #TODO: MIGHT NOT WORK - aliasing means i dont have this.
+#However, this will need to be calculated for each direction for each station.
+
+
+
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # Step 1: Parametric Estimation of C for GLS
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 
 #Brief: This section will use define a noise model using discoveries from OLS
+def create_general_power_law_cov_matrix(station, k):
+    h = [1]
+    n = station_lengths[station]
+    for i in range(n): #Make sure there is no mismatch between list beginnign with 0/1
+        h.append((i - (k/2) - 1)*(h[i-1]/i))
+    H = np.zeroes((n,n))
+    for k in range(n):
+        H[k, :k+1] = h[k::-1]
+    print(f"Completed general power-law covariance matrix for {station}.")
+    J = H@np.transpose(h)
+    return H, h, J
+
+def find_characterized_var(station):
+    white_freq = 10**(0.7)
+    colored_freq = 365.25 #TODO: MIGHT NOT WORK - aliasing means i dont have this.
+    var_white = #i need a function that takes a freq and outputs its power form a FITTED 
+    #line of the PSD graph. 
+
+def create_parametric_C(station):
+    k = station_slopes[station]
+    H, h, J = create_general_power_law_cov_matrix(station, k)
+    var_white, var_colored = find_characterized_var(station)
+    I = np.eye(N)
+    C = var_colored@J + var_white@I
+    return C #This C will be used to contruct the GLS equation.
 
 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
-# Step 2: Define OLS and GLS equations.
+# Step 2: Describe OLS and GLS equations.
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 
 #@Brief: Plain OLS and GLS Equations (not specific, only general representatives):
@@ -98,6 +151,11 @@ print("Finished loading data")
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # Step 3: Use Monte Carlo to Generate N Synthetic Ground Station Series
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+
+#The goal of this section is to generate N Synthetic series
+def binom(n, k):
+    return math.factorial(n) // math.factorial(k) // math.factorial(n - k)
+h = binom((-k/2), i)@(-B)**i
 
 #Brief: This section will set the TRUE velocity that OLS and GLS will conform to
 VELOCITY = _
