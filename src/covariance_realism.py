@@ -72,10 +72,10 @@ station_dates = {
 }
 
 station_lengths = {
-    p349: p349.length(),
-    p380: p380.length(),
-    p434: p434.length(), 
-    p441: p441.length()
+    "p349": p349.nrows(),
+    "p380": p380.nrows(),
+    "p434": p434.nrows(), 
+    "p441": p441.nrows()
 }
 
 #TODO: All k values are to be replaced with values from "alphas" list.
@@ -114,19 +114,19 @@ print("Finished loading data")
 
 #Brief: This section will use define a noise model using discoveries from OLS
 def create_general_power_law_cov_matrix(station, k):
-    h = [1]
+    h = [1] 
     n = station_lengths[station]
     for i in range(n): #Make sure there is no mismatch between list beginnign with 0/1
-        h.append((i - (k/2) - 1)*(h[i-1]/i))
-    H = np.zeroes((n,n))
-    for k in range(n):
-        H[k, :k+1] = h[k::-1]
+        h.append((i - (k/2) - 1)*(h[i-1]/i)) #This is how h is defined in Tero et al
+    H = np.zeros((n,n)) #I am going to convert h into matrix form, H
+    for i in range(n): #I need to fix this. it's not updating any values.
+        H[k, :k+1] = h[k::-1] #This is creating a lower triangular matrix
     print(f"Completed general power-law covariance matrix for {station}.")
-    J = H@np.transpose(h)
+    J = H@np.transpose(h) 
     return H, h, J
-#J is a covariance matrix created from colored noise, dependent upon k
-#       when multiplied by var_colored it is the colored covariance. 
-#       J is not needed for monte carlo
+#J is a covariance matrix created from colored noise, dependent upon k.
+#       when multiplied by var_colored it is the colored component of covariance. 
+#       J is not needed for monte carlo.
         
 
 
@@ -138,9 +138,10 @@ def find_characterized_var(station):
 
 def create_parametric_C(station):
     k = station_slopes[station]
+    n = station_lengths[station]
     H, h, J = create_general_power_law_cov_matrix(station, k)
     var_white, var_colored = find_characterized_var(station)
-    I = np.eye(N)
+    I = np.eye(n)
     C = var_colored@J + var_white@I
     return C #This C will be used to contruct the GLS equation.
 
@@ -148,6 +149,8 @@ def create_parametric_C(station):
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # Step 2: Describe OLS and GLS equations.
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+
+# position(t) = a + b·t + c·sin(2πt) + d·cos(2πt) + e·sin(4πt) + f·cos(4πt) + residual
 
 #@Brief: Plain OLS and GLS Equations (not specific, only general representatives):
 #OLS: 
@@ -171,19 +174,31 @@ def create_parametric_C(station):
 #       
 #       
 
-#The goal of this section is to generate N Synthetic series
-def generate_monte_carlo_series(H,h, station):
-    #This sets the TRUE velocity that OLS and GLS will conform to
-    VELOCITY = betas[station[1].round()] #Need to return to original OLS to determine a likely value.
-    N = 500 #subject to change.
+#The goal of this section is to generate N Synthetic ERROR series
+def generate_monte_carlo_series(H, station):
+    directions = ["north", "east", "vert"]
     noise_models = []
-    #Brief: This section generate N synthetic ground station motion time series.
-    for simulation in range(N):
-        v= np.random.normal(loc=0.0, scale=1.0, size=1000)
-        w = H@v #summation(h)@v
-        noise_models.append(w)
-    return noise_models
+    all_synthetic_series = []
 
+    for direction in directions:
+        station_direction = str(station) + "_" + str(direction)
+        #This sets the TRUE velocity that OLS and GLS will conform to
+        VELOCITY = betas[station_direction][1].round() #I need to think about whether this is deterministic
+        a, c, d, e, f = betas[station_direction][[0, 2, 3, 4, 5]]
+        N = 500 #subject to change.
+        size = station_lengths[station]
+        
+        #Brief: This section generate N synthetic ground station motion time series.
+        for simulation in range(N):
+            v= np.random.normal(loc=0.0, scale=1.0, size=size)
+            w = H@v #summation(h)@v
+            noise_models.append(w) #I will only begin saving persistently once I confirm the code works!
+        #synthetic_series = [signal] + [noise]
+        #synthetic_series = [X][B_true] + [noise]
+            synthetic_series = X_matrices@[a, VELOCITY, c, d, e, f] + w #TODO: ALL of the X matrices? No. Not all of them. Fix this.
+            all_synthetic_series.append(synthetic_series)
+
+    return all_synthetic_series
 
 # * - * - * - * - * - * - * - * - * - * - * - *
 # Step 4: Refit OLS/GLS on each Series   
