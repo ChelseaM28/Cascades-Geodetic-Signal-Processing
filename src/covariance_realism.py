@@ -124,6 +124,11 @@ def create_general_power_law_cov_matrix(station, k):
     print(f"Completed general power-law covariance matrix for {station}.")
     J = H@np.transpose(h)
     return H, h, J
+#J is a covariance matrix created from colored noise, dependent upon k
+#       when multiplied by var_colored it is the colored covariance. 
+#       J is not needed for monte carlo
+        
+
 
 def find_characterized_var(station):
     white_freq = 10**(0.7)
@@ -156,16 +161,29 @@ def create_parametric_C(station):
 # Step 3: Use Monte Carlo to Generate N Synthetic Ground Station Series
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 
+#STEP by STEP: 
+#       I already have C, which is set permanently. 
+#       Hv = w #This is the filter used to create a vector of colored noise for a simulation.
+#.      w is the vector of noise we need for each simulation. 
+#       H = summation(h_i) written in matrix format.
+#       h_i = binom(n,k) function and it is a set value for a simulation.
+#       v is a vector with independent and identically distributed (IID) Gaussian noise
+#       
+#       
+
 #The goal of this section is to generate N Synthetic series
-def binom(n, k):
-    return math.factorial(n) // math.factorial(k) // math.factorial(n - k)
-h = binom((-k/2), i)@(-B)**i
+def generate_monte_carlo_series(H,h, station):
+    #This sets the TRUE velocity that OLS and GLS will conform to
+    VELOCITY = betas[station[1].round()] #Need to return to original OLS to determine a likely value.
+    N = 500 #subject to change.
+    noise_models = []
+    #Brief: This section generate N synthetic ground station motion time series.
+    for simulation in range(N):
+        v= np.random.normal(loc=0.0, scale=1.0, size=1000)
+        w = H@v #summation(h)@v
+        noise_models.append(w)
+    return noise_models
 
-#Brief: This section will set the TRUE velocity that OLS and GLS will conform to
-VELOCITY = _
-N = _
-
-#Brief: This section generate N synthetic ground station motion time series.
 
 # * - * - * - * - * - * - * - * - * - * - * - *
 # Step 4: Refit OLS/GLS on each Series   
