@@ -80,10 +80,10 @@ station_lengths = {
 
 #TODO: All k values are to be replaced with values from "alphas" list.
 station_slopes= {#TODO: All k values are to be replaced with values from "alphas" list.
-    "p349_east": k, "p349_north": k, "p349_vert": k,
-    "p380_north": k, "p380_east": k, "p380_vert": k,
-    "p434_north": k, "p434_east": k, "p434_vert": k,
-    "p441_north": k, "p441_east": k, "p441_vert": k,
+    "p349_north": alphas["p349_north"], "p349_east": alphas["p349_east"], "p349_vert": alphas["p349_vert"],
+    "p380_north": alphas["p380_north"], "p380_east": alphas["p380_east"], "p380_vert": alphas["p380_vert"],
+    "p434_north": alphas["p434_north"], "p434_east": alphas["p434_east"], "p434_vert": alphas["p434_vert"],
+    "p441_north": alphas["p441_north"], "p441_east": alphas["p441_east"], "p441_vert": alphas["p441_vert"],
 }
 print("Finished loading data")
 
@@ -179,7 +179,7 @@ def create_general_power_law_cov_matrix(station, k):
 def find_characterized_var(station):
     white_freq = 10**(0.7)
     colored_freq = 365.25 #TODO: MIGHT NOT WORK - aliasing means i dont have this.
-    var_white = #i need a function that takes a freq and outputs its power form a FITTED 
+    #var_white = #i need a function that takes a freq and outputs its power form a FITTED 
     #line of the PSD graph. 
 
 def create_parametric_C(station):
@@ -224,7 +224,7 @@ def create_parametric_C(station):
 #       h_i = binom(n,k) function and it varies by station direction.
 #       v is a vector with independent and identically distributed (IID) Gaussian noise
 #       
-#       
+
 
 #The goal of this section is to generate N Synthetic ERROR series
 def generate_monte_carlo_series(H, station):
@@ -243,7 +243,7 @@ def generate_monte_carlo_series(H, station):
         #Brief: This section generate N synthetic ground station motion time series.
         for simulation in range(N):
             v= np.random.normal(loc=0.0, scale=1.0, size=size)
-            w = H@v #summation(h)@v
+            w = H@v 
             noise_models.append(w) #I will only begin saving persistently once I confirm the code works!
         #synthetic_series = [signal] + [noise]
         #synthetic_series = [X][B_true] + [noise]
