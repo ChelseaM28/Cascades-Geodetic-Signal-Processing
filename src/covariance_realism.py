@@ -24,6 +24,13 @@
 # only be validated against against *simulated* truth. Claiming true uncertainty realism in the context
 # of orbit determination, I'd be making an overstatement. However, in the context of GNSS geodesy, 
 # my data is adequately 'realistic' since I'm not assuming white noise. TODO: add source.
+#
+# Please NOTE I must undergo a test to confirm the true GNSS stations' residuals are gaussian to align with the
+# assumptions maded in Poore et al. Otherwise I would need to generalize from a covariance realism metric (which I 
+# initially planned to do) to an uncertainty realism metric, which relaxes the gaussian assumption. Though my Monte
+# carlo simulation will remain internally consistent whichever route I choose, recall, as stated in the note above,
+# simulated truth is not necessarily real truth. In other words, for my results to be relevant, the assumption must 
+# match reality (which is kinda the core theme of this whole project!!)
 
 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
@@ -324,12 +331,13 @@ def fit_models(station, direction, all_synthetic_series, C):
 # Future Modifications For this project
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 
-# 1. Array Procesing Extension across all stations
-# 2. Utilize MLE rather than periodogram slope to define alpha 
+# 1. Test for gaussian noise in true GNSS data
+# 2. Array Procesing Extension across all stations
+# 3. Utilize MLE rather than periodogram slope to define alpha 
 #       (also k in some literature) to build parametric C. See Tero et al.
-# 3. Pull USGS earthquake catalogue to confirm changepoints
-# 4. Segment residual regimes between changepoints, then flag outliers (IQR/ Z-score)
-# 5. Model diagnostics (Model-order, multicollinearity, etc)
-# 6. Wrap project as real-time dynamic pipeline
+# 4. Pull USGS earthquake catalogue to confirm changepoints
+# 5. Segment residual regimes between changepoints, then flag outliers (IQR/ Z-score)
+# 6. Model diagnostics (Model-order, multicollinearity, etc)
+# 7. Wrap project as real-time dynamic pipeline
 
 
