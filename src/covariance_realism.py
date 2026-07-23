@@ -249,7 +249,7 @@ def generate_monte_carlo_series(H, station):
         #synthetic_series = [signal] + [noise]
         #synthetic_series = [X][B_true] + [noise]
             synthetic_series = X_matrices[station]@[a, VELOCITY, c, d, e, f] + w
-            all_synthetic_series.append(synthetic_series)
+            all_synthetic_series.append(synthetic_series) #I will make a dictionary instead!!
 
     return all_synthetic_series
 
@@ -259,9 +259,35 @@ def generate_monte_carlo_series(H, station):
 
 #@Brief: Data manipulation to format for matrix calculations
 
-#@Brief: This section will recover velocity estimates for OLS and GLS from each simulation
+#OLS ROUGH OUTLINE ONLY - The scope will be wrong. This is just the overarching idea.
+#this function will likely be in a for loop.
+def fit_models(station, direction, all_synthetic_series, C):
+    fitted_OLS_models = {}
+    station_direction = str(station) + "_" + str(direction)
+    #OLS:
+    # y = XB + e 
+    # B = (X'X)^(-1) 
+    X = X_matrices[station]
+    y = all_synthetic_series[station_direction]
+    OLS_betas = np.linalg.lstsq(X, y, rcond=None) 
+    fitted_OLS_models[station_direction] = OLS_betas
 
-#Brief: This section will recover σ²_OLS and σ²_GLS from each simulation
+    #In Contrast, Generalized Least Squares:
+    #GLS: B = (X'C^(-1)X)^(-1)XC^(-1)y 
+    #TODO Very important. Doing this with code is tough. I admittedly need to revisit the math here for the following 4 lines. 
+    L = np.linalg.cholesky(C)
+    X_whitened = np.linalg.solve(L, X)
+    y_whitened = np.linalg.solve(L, y)
+    GLS_betas, *_ = np.linalg.lstsq(X_whitened, y_whitened, rcond=None)
+    #@Brief: This section will recover velocity estimates for OLS and GLS from each simulation
+    #AKA, create persistent storage. with open json etc etc.
+
+    #Brief: This section will recover σ²_OLS and σ²_GLS from each simulation
+    #Find residuals
+    OLS_residuals = y - X@OLS_betas
+    GLS_residuals = y - X@GLS_betas
+
+    
 
 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
