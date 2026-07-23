@@ -78,8 +78,7 @@ station_lengths = {
     "p441": p441.nrows()
 }
 
-#TODO: All k values are to be replaced with values from "alphas" list.
-station_slopes= {#TODO: All k values are to be replaced with values from "alphas" list.
+station_slopes= {
     "p349_north": alphas["p349_north"], "p349_east": alphas["p349_east"], "p349_vert": alphas["p349_vert"],
     "p380_north": alphas["p380_north"], "p380_east": alphas["p380_east"], "p380_vert": alphas["p380_vert"],
     "p434_north": alphas["p434_north"], "p434_east": alphas["p434_east"], "p434_vert": alphas["p434_vert"],
