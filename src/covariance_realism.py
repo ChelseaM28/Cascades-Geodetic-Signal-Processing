@@ -99,8 +99,9 @@ print("Finished loading data")
 # Don't be confused: We refit OLS and GLS on each Monte Carlo series. When we recover the model's estimated B values from the simulations,
 # and plot them on ahistogram, both models will center on VELOCITY_true, but the spreads will be different. That's not the end though.
 
-# Each model should be aware of its own spread (spread ~ uncertainty). So we calculate σ^2 for each simulation and plot them on a histogram. 
-# We then normalize them to a z distribution to make them comparable (THESE are my 'uncertainty realism' metrics). If the σ^2 values are accurate,
+# Each model should be aware of its own spread (spread ~ uncertainty). So we calculate σ^2 for each simulation, normalize them to a z distribution 
+# to make them comparable, and plot them on a histogram. 
+# (THESE normalized values, z, are my 'uncertainty realism' metrics). If the σ^2 values are accurate,
 # the z distribution should follow a chi-sqrd distribution with df = 1.
 #     WHY? - In order to normalize the errors, we are doing z = (B_estimated - B_true)/σ_formal so the Var(z) = σ^2_true/σ^2_formal
 #            In other words, we are dividing actual uncertainty by what the model thinks its uncertainty is. This normalization will result in
