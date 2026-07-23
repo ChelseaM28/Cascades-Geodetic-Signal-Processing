@@ -86,7 +86,7 @@ station_lengths = {
 }
 
 #NOTE THESE ARE NOT ACCURATE YET. They must be calculated using the fitted line i will use for the find_characterized_var function
-# I should also probably segment according to the changepoints I calculated earlier.
+# I should also probably segment according to the changepoints I calculated earlier. Means the alphas list I generated earlier will likely be scratched.
 station_slopes= {
     "p349_north": alphas["p349_north"], "p349_east": alphas["p349_east"], "p349_vert": alphas["p349_vert"],
     "p380_north": alphas["p380_north"], "p380_east": alphas["p380_east"], "p380_vert": alphas["p380_vert"],
@@ -189,8 +189,9 @@ def create_general_power_law_cov_matrix(station, k):
 def find_characterized_var(station):
     white_freq = 10**(0.7)
     colored_freq = 365.25 #TODO: MIGHT NOT WORK - aliasing means i dont have this.
-    #var_white = #i need a function that takes a freq and outputs its power form a FITTED 
-    #line of the PSD graph. 
+    var_white = _ #i need a function that takes a freq and outputs its power form a FITTED line of the PSD graph. 
+    var_colored = _
+    return var_white, var_colored
 
 def create_parametric_C(station):
     k = station_slopes[station]
