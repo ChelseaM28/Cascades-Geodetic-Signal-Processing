@@ -85,6 +85,8 @@ station_lengths = {
     "p441": len(p441)
 }
 
+#NOTE THESE ARE NOT ACCURATE YET. They must be calculated using the fitted line i will use for the find_characterized_var function
+# I should also probably segment according to the changepoints I calculated earlier.
 station_slopes= {
     "p349_north": alphas["p349_north"], "p349_east": alphas["p349_east"], "p349_vert": alphas["p349_vert"],
     "p380_north": alphas["p380_north"], "p380_east": alphas["p380_east"], "p380_vert": alphas["p380_vert"],
@@ -154,7 +156,7 @@ print("Finished loading data")
 # and I add them to N deterministic signals (a + t + sin(2πt) + cos(2πt) + sin(4πt) + cos(4πt)))
 # which creates the N series OLS and GLS will be refitted to. 
 
-# STEPS 5-7: These will complete the distribution comparison and interpret the results as 
+# STEPS 5-6: These will complete the distribution comparison and interpret the results as 
 # described above.
 
 
@@ -239,7 +241,7 @@ def generate_monte_carlo_series(H, station):
     directions = ["north", "east", "vert"]
     noise_models = []
     all_synthetic_series = []
-
+    all_velocities = []
     for direction in directions:
         station_direction = str(station) + "_" + str(direction)
         #This sets the TRUE velocity that OLS and GLS will conform to
@@ -247,6 +249,7 @@ def generate_monte_carlo_series(H, station):
         a, c, d, e, f = betas[station_direction][[0, 2, 3, 4, 5]]
         N = 500 #subject to change.
         size = station_lengths[station]
+        all_velocities.append(VELOCITY)
         
         #Brief: This section generate N synthetic ground station motion time series.
         for simulation in range(N):
@@ -258,17 +261,15 @@ def generate_monte_carlo_series(H, station):
             synthetic_series = X_matrices[station]@[a, VELOCITY, c, d, e, f] + w
             all_synthetic_series.append(synthetic_series) #I will make a dictionary instead!!
 
-    return all_synthetic_series
+    return all_synthetic_series, all_velocities
 
 # * - * - * - * - * - * - * - * - * - * - * - *
 # Step 4: Refit OLS/GLS on each Series   
 # * - * - * - * - * - * - * - * - * - * - * _ *
 
-#@Brief: Data manipulation to format for matrix calculations
-
-#OLS ROUGH OUTLINE ONLY - The scope will be wrong. This is just the overarching idea.
+#OLS ROUGH OUTLINE ONLY - The scope/dtatypes, etc will be wrong. This is just the overarching idea to work from.
 #this function will likely be in a for loop.
-def fit_models(station, direction, all_synthetic_series, C):
+def fit_LS_models(station, direction, all_synthetic_series, C ,VELOCITY):
     fitted_OLS_models = {}
     station_direction = str(station) + "_" + str(direction)
     #OLS:
@@ -293,7 +294,16 @@ def fit_models(station, direction, all_synthetic_series, C):
     #Find residuals
     OLS_residuals = y - X@OLS_betas
     GLS_residuals = y - X@GLS_betas
+    GLS_var_formal = _ #TODO: Find how to calculate this
+    OLS_var_formal = _
 
+    #NOTE: I am aware that I am improperly dealing with these vectors at the moment. this is a comceptual rough draft.
+    GLS_cov_realism_metric = (GLS_betas[1] - VELOCITY)**2 / GLS_var_formal
+    OLS_cov_realism_metric = (OLS_betas[1] - VELOCITY)**2 / OLS_var_formal #This creates z
+
+    GLS_metric = GLS_metric**2
+    OLS_metric = OLS_metric**2 #This creates z^2, which should be the Mahalanobis Distance metric from Poore
+    return GLS_cov_realism_metric, OLS_cov_realism_metric
     
 
 
@@ -302,21 +312,52 @@ def fit_models(station, direction, all_synthetic_series, C):
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # It is helpful to recall that z² is the Mahalanobis Distance Metric from Poore et al. at n = 1
 
+directions = ["north", "east," "vert"]
 
-# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
-# Step 6: Plot Velocity Estimates on Histogram (Not necessary, purely as visual additions)
-# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+for station in stations:
+    C = create_parametric_C
+    for dir in directions:
+        station_direction = str(station) + "_" + str(dir)
+        H, _, _ = create_general_power_law_cov_matrix(station, station_slopes[station_direction])
+        synthetic_series, velocities_true = generate_monte_carlo_series(H, station) #TODO: Need to fix this so im not generating ALL monte carlos each time.
+        GLS_metric, OLS_metric = fit_LS_models(station, dir, synthetic_series, C, velocities_true) #This pipeline is a little messy. 'll clean it up.
+
 
 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
-# Step 7: Distribution Comparison (FOCAL POINT OF PROJECT)
+# Step 6: Distribution Comparison (FOCAL POINT OF PROJECT)
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+
 
 #@Brief: This section will plot OLS/GLS z² values on a histogram
+# Compute histogram
+m = _ #creating m discrete cells
+GLS_hist, bin_edges = np.histogram(GLS_metric, bins=m)
 
+print("Counts:", GLS_hist)
+print("Bin Edges:", bin_edges)
+
+plt.hist(GLS_hist, bins=5, edgecolor='black')
+plt.title("Histogram of GLS Realism Metrics")
+plt.xlabel("Value")
+plt.ylabel("Frequency")
+plt.show()
+
+
+OLS_hist,bin_edges = np.histogram(OLS_metric, bins=m)
+
+print("Counts:", OLS_hist)
+print("Bin Edges:", bin_edges)
+
+plt.hist(OLS_hist, bins=5, edgecolor='black')
+plt.title("Histogram of OLS Realism Metrics")
+plt.xlabel("Value")
+plt.ylabel("Frequency")
+plt.show()
 
 #@Brief: This section will perform a goodness of fit test to confirm visual results
-
+# compare the number of values in the cell compared to how many should be in the cell in a chi-sqrd dist
+# compute chi sqrd test stat and compare to critical value from chi-sqr distr
 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # Analysis of the significance of the OLS/GLS σ² histograms
