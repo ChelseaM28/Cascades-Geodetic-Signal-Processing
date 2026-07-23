@@ -72,10 +72,10 @@ station_dates = {
 }
 
 station_lengths = {
-    "p349": p349.nrows(),
-    "p380": p380.nrows(),
-    "p434": p434.nrows(), 
-    "p441": p441.nrows()
+    "p349": len(p349),
+    "p380": len(p380),
+    "p434": len(p434), 
+    "p441": len(p441)
 }
 
 station_slopes= {
