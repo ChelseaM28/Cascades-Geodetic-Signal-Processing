@@ -104,8 +104,9 @@ print("Finished loading data")
 # (THESE normalized values, z, are my 'uncertainty realism' metrics). If the σ^2 values are accurate,
 # the z distribution should follow a chi-sqrd distribution with df = 1.
 #     WHY? - In order to normalize the errors, we are doing z = (B_estimated - B_true)/σ_formal so the Var(z) = σ^2_true/σ^2_formal
-#            In other words, we are dividing actual uncertainty by what the model thinks its uncertainty is. This normalization will result in
-#            a chi-sqrd distribution.
+#            In other words, we are dividing actual uncertainty by what the model thinks its uncertainty is. Z^2 is actually the Mahalanobis distance at n = 1.
+#            This normalization will result in a chi-sqrd distribution. (Mahalanobis distance, btw, is essentially the distance between a point and a distribution. 
+#            I wont get in the weeds though.)TODO: STILL NEEDS EXTRA CLARIFICATION on WHY CHI SQRD?
 #TODO Among everything, be sure to explain why z² is the Mahalanobis Distance Metric from Poore et al. at n = 1
 # The issue we will encounter is OLS is BLIND to colored noise, 
 #     WHAT? - In other words, rather than considering correlated errors (σ^2_OLS@C), OLS assume the error is independent, and thus operates 
