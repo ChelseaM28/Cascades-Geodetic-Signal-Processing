@@ -93,18 +93,64 @@ print("Finished loading data")
 # Mathematical Reasoning for Uncertainty Realism Script
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 
-#Among everything, be sure to explain why z² is the Mahalanobis Distance Metric from Poore et al. at n = 1
+# MAIN PREMISE: We are determining whether OLS or GLS has more accurate formal uncertainty (σ^2). In order to do this, we need a
+# GROUND TRUTH to verify against (in my case, ground truth is simulated). To determine whether σ^2_OLS or σ^2_GLS is better, 
+# use Monte Carlo to generate N synthetic series with a predetermined VELOCITY, and some synthetic noise (all of which 
+# exhibiting the same noise model but with different INDIVIDUAL noise values).
+# Don't be confused: We refit OLS and GLS on each Monte Carlo series. When we recover the model's estimated B values from the simulations,
+# and plot them on ahistogram, both models will center on VELOCITY_true, but the spreads will be different. That's not the end though.
+
+# Each model should be aware of its own spread (spread ~ uncertainty). So we calculate σ^2 for each simulation and plot them on a histogram. 
+# We then normalize them to a z distribution to make them comparable (THESE are my 'uncertainty realism' metrics). If the σ^2 values are accurate,
+# the z distribution should follow a chi-sqrd distribution with df = 1.
+#     WHY? - In order to normalize the errors, we are doing z = (B_estimated - B_true)/σ_formal so the Var(z) = σ^2_true/σ^2_formal
+#            In other words, we are dividing actual uncertainty by what the model thinks its uncertainty is. This normalization will result in
+#            a chi-sqrd distribution.
+#TODO Among everything, be sure to explain why z² is the Mahalanobis Distance Metric from Poore et al. at n = 1
+# The issue we will encounter is OLS is BLIND to colored noise, 
+#     WHAT? - In other words, rather than considering correlated errors (σ^2_OLS@C), OLS assume the error is independent, and thus operates 
+#             under the premise that σ^2_OLS@C = σ^2_OLS@I. <-- identity matrix 
+# so its z distribution will be shifted right/heavier on the tail. This means its own idea of how uncertain it is is wrong. 
+#
+# As far as I'm aware, theoretically, aside from model uncertainty, with large enough N, the methodologies were built s.t. the standardized errors 
+# would always follow the appropriate distribution. But we will see that OLS breaks and any inferences we make with using its reported uncertainty
+# (any hypothesis tests or confidence intervals) will NOT be credible.
+
+
+# SCRIPT STRUCTURE: I divide this script into distinct steps with subsections. A general overview of each step is found below.
 
 # STEP 1: PARAMETRIC ESTIMATION OF C for GLS
+# When fitting a model (estimating the parameters, B) generalized least squares utilizes
+# a covariance matrix to correct against heteroscedasticity and correlated error.
+# My monte carlo simulation needs to generate N synthetic series with identical covariance 
+# but different values in each epoch. In this way OLS and GLS can be refit under the same error
+# conditions. So once the covariance of the errors (not parameters TODO:CHECK) is determined, 
+# it will be reused without any changes. To estimate the covariance accurately, I use Tero et al's
+# parametric method of calculating C.
 
 
-# STEP 3: CREATING COLORED MONTE CARLO NOISE
-#To find the σ^2_colored and σ^2_white, I look at the power of each PSD graph at the 
+# The parametric method of estimating C requires the colored portion of the variance σ^2_colored be
+# multiplied by the appropriate covariance model/matrix, J, to for the colored component of C. e.g. σ^2_colored@J
+# Next, the white noise variance, σ^2_white, will be multiplied by its covariance model (which will be an identity matrix).
+# e.g. σ^2_white@I
+# So C = σ^2_colored@J + σ^2_white@I
+# To find the σ^2_colored and σ^2_white, I look at the power of each PSD graph at the 
 # intercept (where sampling frequency = frequency) and at the flattening point (line of demarcation which
 # I already set to ~5 cycles/yr)
 #looking back at my PSD graphs, var_white will eb the power located at the frewuency of 10^(0.7)
 #var_colored will be the power at the frequency of 365.25 #TODO: MIGHT NOT WORK - aliasing means i dont have this.
 #However, this will need to be calculated for each direction for each station.
+
+# STEP 3/4: CREATING COLORED MONTE CARLO SERIES + REFITTING
+# I create N error series (w) 
+# and I add them to N deterministic signals (a + t + sin(2πt) + cos(2πt) + sin(4πt) + cos(4πt)))
+# which creates the N series OLS and GLS will be refitted to. 
+
+# STEPS 5-7: These will complete the distribution comparison and interpret the results as 
+# described above.
+
+
+# END MATHEMATICAL REASONING
 
 
 
@@ -124,9 +170,9 @@ def create_general_power_law_cov_matrix(station, k):
     print(f"Completed general power-law covariance matrix for {station}.")
     J = H@np.transpose(h) 
     return H, h, J
-#J is a covariance matrix created from colored noise, dependent upon k.
-#       when multiplied by var_colored it is the colored component of covariance. 
-#       J is not needed for monte carlo.
+#J is a covariance matrix created from colored noise, dependent upon k. In my text, k seems 
+#       synonymous with k. J, when multiplied by var_colored (σ^2_colored), is the colored 
+#       component of covariance. Once used to calculate C, J is not needed again for monte carlo.
         
 
 
@@ -150,12 +196,17 @@ def create_parametric_C(station):
 # Step 2: Describe OLS and GLS equations.
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 
+# The data is modeled using the following predictors:
 # position(t) = a + b·t + c·sin(2πt) + d·cos(2πt) + e·sin(4πt) + f·cos(4πt) + residual
 
 #@Brief: Plain OLS and GLS Equations (not specific, only general representatives):
-#OLS: 
-#GLS: 
-#The difference between the two is the weighted component of GLS and its assumptions, etc etc...
+#OLS: y = XB + e  <-- Very familiar!
+#     B = (X'X)^(-1)  <-- Algebraic manipulation to isolate and estimate B! 
+
+#In Contrast, Generalized Least Squares:
+
+#GLS: B = (X'C^(-1)X)^(-1)XC^(-1)y  <-- When estimating B, COVARIANCE is NOT assumed to be the identity matrix!  
+#The difference between the two is the weighted component, C, of GLS and its assumptions, etc etc...
 
 #@Brief: This section will verify all assumptions for my methodology are met before running Monte Carlo.
 
@@ -167,9 +218,10 @@ def create_parametric_C(station):
 #STEP by STEP: 
 #       I already have C, which is set permanently. 
 #       Hv = w #This is the filter used to create a vector of colored noise for a simulation.
-#.      w is the vector of noise we need for each simulation. 
+#       w is the vector of colored noise we need for each simulation that has the same overarching noise model with 
+#       varying values at each epoch.
 #       H = summation(h_i) written in matrix format.
-#       h_i = binom(n,k) function and it is a set value for a simulation.
+#       h_i = binom(n,k) function and it varies by station direction.
 #       v is a vector with independent and identically distributed (IID) Gaussian noise
 #       
 #       
@@ -195,7 +247,7 @@ def generate_monte_carlo_series(H, station):
             noise_models.append(w) #I will only begin saving persistently once I confirm the code works!
         #synthetic_series = [signal] + [noise]
         #synthetic_series = [X][B_true] + [noise]
-            synthetic_series = X_matrices@[a, VELOCITY, c, d, e, f] + w #TODO: ALL of the X matrices? No. Not all of them. Fix this.
+            synthetic_series = X_matrices[station]@[a, VELOCITY, c, d, e, f] + w
             all_synthetic_series.append(synthetic_series)
 
     return all_synthetic_series
