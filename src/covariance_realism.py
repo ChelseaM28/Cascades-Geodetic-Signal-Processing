@@ -148,7 +148,7 @@ print("Finished loading data")
 # intercept (where sampling frequency = frequency) and at the flattening point (line of demarcation which
 # I already set to ~5 cycles/yr)
 #looking back at my PSD graphs, var_white will eb the power located at the frewuency of 10^(0.7)
-#var_colored will be the power at the frequency of 365.25 #TODO: MIGHT NOT WORK - aliasing means i dont have this.
+#var_colored will be the (extrapolated) power at the frequency of 365.25 
 #However, this will need to be calculated for each direction for each station.
 
 # STEP 3/4: CREATING COLORED MONTE CARLO SERIES + REFITTING
@@ -176,9 +176,9 @@ def create_general_power_law_cov_matrix(station, k):
         h.append((i - (k/2) - 1)*(h[i-1]/i)) #This is how h is defined in Tero et al
     H = np.zeros((n,n)) #I am going to convert h into matrix form, H
     for i in range(n): #I need to fix this. it's not updating any values.
-        H[k, :k+1] = h[k::-1] #This is creating a lower triangular matrix
+        H[i, :i+1] = h[i::-1] #This is creating a lower triangular matrix
     print(f"Completed general power-law covariance matrix for {station}.")
-    J = H@np.transpose(h) 
+    J = H@np.transpose(np.array(h[:n]))
     return H, h, J
 #J is a covariance matrix created from colored noise, dependent upon k. In my text, k seems 
 #       synonymous with k. J, when multiplied by var_colored (σ^2_colored), is the colored 
@@ -220,13 +220,14 @@ def find_characterized_var(station, direction):
     var_colored = power_at_freq(colored_freq, slope, intercept)
     return var_white, var_colored
 
-def create_parametric_C(station):
-    k = station_slopes[station]
+def create_parametric_C(station, direction):
+    key = f"{station}_{direction}"
+    k = station_slopes[key]
     n = station_lengths[station]
     H, h, J = create_general_power_law_cov_matrix(station, k)
-    var_white, var_colored = find_characterized_var(station)
+    var_white, var_colored = find_characterized_var(station, direction)
     I = np.eye(n)
-    C = var_colored@J + var_white@I
+    C = var_colored*J + var_white*I
     return C #This C will be used to contruct the GLS equation.
 
 
@@ -265,6 +266,12 @@ def create_parametric_C(station):
 
 
 #The goal of this section is to generate N Synthetic ERROR series
+# TODO: all_synthetic_series is built here as a flat list via
+# nested .append() calls, but fit_LS_models() below reads from it with
+# all_synthetic_series[station_direction], as if it were a dict. Decide on one structure
+# (e.g. dict keyed by station_direction -> list of N series) and make both ends consistent.
+# Same issue applies to all_velocities / VELOCITY: this returns a list (one per direction),
+# but fit_LS_models uses VELOCITY as a single scalar in the metric formula.
 def generate_monte_carlo_series(H, station):
     directions = ["north", "east", "vert"]
     noise_models = []
@@ -291,11 +298,11 @@ def generate_monte_carlo_series(H, station):
 
     return all_synthetic_series, all_velocities
 
-# * - * - * - * - * - * - * - * - * - * - * - *
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # Step 4: Refit OLS/GLS on each Series   
-# * - * - * - * - * - * - * - * - * - * - * _ *
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 
-#OLS ROUGH OUTLINE ONLY - The scope/dtatypes, etc will be wrong. This is just the overarching idea to work from.
+#OLS ROUGH OUTLINE ONLY 
 #this function will likely be in a for loop.
 def fit_LS_models(station, direction, all_synthetic_series, C ,VELOCITY):
     fitted_OLS_models = {}
@@ -305,12 +312,12 @@ def fit_LS_models(station, direction, all_synthetic_series, C ,VELOCITY):
     # B = (X'X)^(-1) 
     X = X_matrices[station]
     y = all_synthetic_series[station_direction]
-    OLS_betas = np.linalg.lstsq(X, y, rcond=None) 
+    OLS_betas, *_ = np.linalg.lstsq(X, y, rcond=None)
     fitted_OLS_models[station_direction] = OLS_betas
 
     #In Contrast, Generalized Least Squares:
     #GLS: B = (X'C^(-1)X)^(-1)XC^(-1)y 
-    #TODO Very important. Doing this with code is tough. I admittedly need to revisit the math here for the following 4 lines. 
+    #TODO Very important. Cholesky Whitening. I admittedly need to revisit the math here for the following 4 lines. 
     L = np.linalg.cholesky(C)
     X_whitened = np.linalg.solve(L, X)
     y_whitened = np.linalg.solve(L, y)
@@ -326,9 +333,13 @@ def fit_LS_models(station, direction, all_synthetic_series, C ,VELOCITY):
     n = station_lengths[station]
     p = 6 #parameters in the model
 
+    # TODO: double check (1) which residual vector belongs
+    # in each sum of squares (both lines currently dot against the same `residuals` variable
+    # from the top-level residuals.json, not GLS_residuals/OLS_residuals), and (2) whether
+    # GLS's formal covariance should be built from X or from X_whitened.
     sigma_sqrd_GLS = (GLS_residuals @ residuals)/(n-p)
     Cov_GLS = sigma_sqrd_GLS * np.linalg.inv(X.T @ X)
-    GLS_var_formal = Cov_GLS[1,1] #TODO: Find how to calculate this
+    GLS_var_formal = Cov_GLS[1,1] 
 
     sigma_sqrd_OLS = (OLS_residuals @ residuals)/(n-p)
     Cov_OLS = sigma_sqrd_OLS * np.linalg.inv(X.T @ X)
@@ -339,9 +350,9 @@ def fit_LS_models(station, direction, all_synthetic_series, C ,VELOCITY):
     GLS_cov_realism_metric = (GLS_betas[1] - VELOCITY)**2 / GLS_var_formal
     OLS_cov_realism_metric = (OLS_betas[1] - VELOCITY)**2 / OLS_var_formal #This creates z
 
-    GLS_metric = GLS_metric**2
-    OLS_metric = OLS_metric**2 #This creates z^2, which should be the Mahalanobis Distance metric from Poore
-    return GLS_cov_realism_metric, OLS_cov_realism_metric
+    GLS_metric = GLS_cov_realism_metric**2
+    OLS_metric = OLS_cov_realism_metric**2 #This creates z^2, which should be the Mahalanobis Distance metric from Poore
+    return GLS_metric, OLS_metric
     
 
 
@@ -353,9 +364,9 @@ def fit_LS_models(station, direction, all_synthetic_series, C ,VELOCITY):
 directions = ["north", "east", "vert"]
 
 for station in stations:
-    C = create_parametric_C
     for dir in directions:
         station_direction = str(station) + "_" + str(dir)
+        C = create_parametric_C(station, dir)
         H, _, _ = create_general_power_law_cov_matrix(station, station_slopes[station_direction])
         synthetic_series, velocities_true = generate_monte_carlo_series(H, station) #TODO: Need to fix this so im not generating ALL monte carlos each time.
         GLS_metric, OLS_metric = fit_LS_models(station, dir, synthetic_series, C, velocities_true) #This pipeline is a little messy. 'll clean it up.
@@ -418,5 +429,3 @@ plt.show()
 # 5. Segment residual regimes between changepoints, then flag outliers (IQR/ Z-score)
 # 6. Model diagnostics (Model-order, multicollinearity, etc)
 # 7. Wrap project as real-time dynamic pipeline
-
-
