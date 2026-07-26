@@ -412,6 +412,7 @@ print("alpha for for frequencies less than 10^(0.7) are as follows:")
 for key, value in residuals.items():
     freqs, power = periodogram(value, fs=365.25)
     bin_centers, bin_means = bin_psd(freqs, power)
+    #The mask restricts the range that polyfit will fit to. 
     mask = (bin_centers < 5) & (~np.isnan(bin_means)) #Prior mistake I made: ensure each event in the & statement is in parenthesis
     fit_freqs = bin_centers[mask]
     fit_power = bin_means[mask]

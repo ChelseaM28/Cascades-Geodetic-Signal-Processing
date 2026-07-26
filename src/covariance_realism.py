@@ -227,7 +227,12 @@ def create_parametric_C(station, direction):
     H, h, J = create_general_power_law_cov_matrix(station, k)
     var_white, var_colored = find_characterized_var(station, direction)
     I = np.eye(n)
+    #The typical emprirical covariance matrix estimation does not estimate noise well at long periods, 
+    #so a new method used used where we define a noise model and estimate the parameters of the noise moodel.
+    #This is the noise model when decomposed into its white and colored components:
     C = var_colored*J + var_white*I
+    #The parameters we estimate are var_colored, k (which, recall, helps build J), and var_white.
+
     return C #This C will be used to contruct the GLS equation.
 
 
@@ -317,10 +322,12 @@ def fit_LS_models(station, direction, all_synthetic_series, C ,VELOCITY):
 
     #In Contrast, Generalized Least Squares:
     #GLS: B = (X'C^(-1)X)^(-1)XC^(-1)y 
-    #TODO Very important. Cholesky Whitening. I admittedly need to revisit the math here for the following 4 lines. 
+    # Instead of copmuting this, I use the Cholesky decomposition which utilizes a unique, lower 
+    # triangular matrix L to whiten (orthagonalize) all correlated variables. Cholesky happens to 
+    # assume an ordered dataset, which makes it helpful for time series data whitening.
     L = np.linalg.cholesky(C)
-    X_whitened = np.linalg.solve(L, X)
-    y_whitened = np.linalg.solve(L, y)
+    X_whitened = np.linalg.solve(L, X) # whitening t + sin(2pit) + cos(2pit) + ...
+    y_whitened = np.linalg.solve(L, y) #I have to whiten all the displacement data too
     GLS_betas, *_ = np.linalg.lstsq(X_whitened, y_whitened, rcond=None)
     #@Brief: This section will recover velocity estimates for OLS and GLS from each simulation
     #AKA, create persistent storage. with open json etc etc.
