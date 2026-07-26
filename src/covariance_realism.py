@@ -185,12 +185,39 @@ def create_general_power_law_cov_matrix(station, k):
 #       component of covariance. Once used to calculate C, J is not needed again for monte carlo.
         
 
+def fit_psd_line(residual, fs=365.25, freq_cutoff=5):
+    #o compute alphas.json, on the same restricted range
+    #(aka masked frequency range). 
+    freqs, power = periodogram(residual, fs=fs)
+    bin_centers, bin_means = bin_psd(freqs, power)
+    mask = (bin_centers < freq_cutoff) & (~np.isnan(bin_means))
+    log_f = np.log10(bin_centers[mask])
+    log_p = np.log10(bin_means[mask])
+    slope, intercept = np.polyfit(log_f, log_p, 1)
+    return slope, intercept
 
-def find_characterized_var(station):
+
+def power_at_freq(freq, slope, intercept):
+    #Reads power off the fitted log-log line at a given frequency.
+    log_power = slope * np.log10(freq) + intercept
+    return 10 ** log_power
+
+
+def find_characterized_var(station, direction):
     white_freq = 10**(0.7)
-    colored_freq = 365.25 #TODO: MIGHT NOT WORK - aliasing means i dont have this.
-    var_white = _ #i need a function that takes a freq and outputs its power form a FITTED line of the PSD graph. 
-    var_colored = _
+    colored_freq = 365.25 #This is the value at which f/f_s = 1, so when plugged 
+    # into the equation for power-law noise (figure 22 in Tero et al.), the resulting 
+    # value is P, a constant, the power, the variance. Yes, this frequency, f, is beyond 
+    # the nyquist frequency. However, if my understanding of the literature is correct, 
+    # f always is. However, I needed the aforementioned ratio to hold true. 
+    # It's a real idiosyncracy I'm wrestling with.  
+
+    #To fing var_white and var_colored, i needed a function 
+    # that takes a freq and outputs its power form a FITTED line of the PSD graph. 
+    key = f"{station}_{direction}"
+    slope, intercept = fit_psd_line(residuals[key])
+    var_white = power_at_freq(white_freq, slope, intercept)
+    var_colored = power_at_freq(colored_freq, slope, intercept)
     return var_white, var_colored
 
 def create_parametric_C(station):
@@ -295,8 +322,18 @@ def fit_LS_models(station, direction, all_synthetic_series, C ,VELOCITY):
     #Find residuals
     OLS_residuals = y - X@OLS_betas
     GLS_residuals = y - X@GLS_betas
-    GLS_var_formal = _ #TODO: Find how to calculate this
-    OLS_var_formal = _
+
+    n = station_lengths[station]
+    p = 6 #parameters in the model
+
+    sigma_sqrd_GLS = (GLS_residuals @ residuals)/(n-p)
+    Cov_GLS = sigma_sqrd_GLS * np.linalg.inv(X.T @ X)
+    GLS_var_formal = Cov_GLS[1,1] #TODO: Find how to calculate this
+
+    sigma_sqrd_OLS = (OLS_residuals @ residuals)/(n-p)
+    Cov_OLS = sigma_sqrd_OLS * np.linalg.inv(X.T @ X)
+    OLS_var_formal = Cov_OLS[1, 1]   # index 1 = b = velocity
+
 
     #NOTE: I am aware that I am improperly dealing with these vectors at the moment. this is a comceptual rough draft.
     GLS_cov_realism_metric = (GLS_betas[1] - VELOCITY)**2 / GLS_var_formal
@@ -313,7 +350,7 @@ def fit_LS_models(station, direction, all_synthetic_series, C ,VELOCITY):
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # It is helpful to recall that z² is the Mahalanobis Distance Metric from Poore et al. at n = 1
 
-directions = ["north", "east," "vert"]
+directions = ["north", "east", "vert"]
 
 for station in stations:
     C = create_parametric_C
