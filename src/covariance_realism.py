@@ -205,7 +205,7 @@ for station in stations:
         key = str(station) + "_" + str(direction)
         #Im creating a dictionary of the slopes of the fitted lines from the PSD graph. 
         #This will be used to calculate C and H
-        station_slopes[key] = fit_psd_line(residuals[station]) 
+        station_slopes[key], _ = fit_psd_line(residuals[key]) 
 # I should also have segmented slopes according to the changepoints I calculated earlier. 
 # Additionally, the creation of this for loop means the alphas list I generated and saved 
 # earlier will likely be scratched.
@@ -285,29 +285,31 @@ def create_parametric_C(station, direction):
 
 
 #The goal of this section is to generate N Synthetic ERROR series
-def generate_monte_carlo_series(H, station):
+def generate_monte_carlo_series(H, station, direction):
     directions = ["north", "east", "vert"]
-    noise_models = []
+    noise_models = {}
     all_synthetic_series = {}
-    all_velocities = {}
-    for direction in directions:
-        station_direction = str(station) + "_" + str(direction)
-        #This sets the TRUE velocity that OLS and GLS will conform to
-        VELOCITY = betas[station_direction][1].round() #I need to think about whether this is deterministic
-        a, c, d, e, f = betas[station_direction][[0, 2, 3, 4, 5]]
-        N = 500 #subject to change.
-        size = station_lengths[station]
-        true_velocities_dict[station_direction] = VELOCITY
-        
-        #Brief: This section generate N synthetic ground station motion time series.
-        for simulation in range(N):
-            v= np.random.normal(loc=0.0, scale=1.0, size=size)
-            w = H@v 
-            noise_models.append(w) #I will only begin saving persistently once I confirm the code works!
-        #synthetic_series = [signal] + [noise]
-        #synthetic_series = [X][B_true] + [noise]
-            synthetic_series = X_matrices[station]@[a, VELOCITY, c, d, e, f] + w
-            all_synthetic_series[station_direction] = synthetic_series #I will make a dictionary instead!!
+    true_velocities_dict = {}
+    series_list = []
+    
+    station_direction = str(station) + "_" + str(direction)
+    #This sets the TRUE velocity that OLS and GLS will conform to
+    VELOCITY = betas[station_direction][1].round() #I need to think about whether this is deterministic
+    a, c, d, e, f = betas[station_direction][[0, 2, 3, 4, 5]]
+    N = 500 #subject to change.
+    size = station_lengths[station]
+    true_velocities_dict[station_direction] = VELOCITY
+    
+    #Brief: This section generate N synthetic ground station motion time series.
+    for simulation in range(N):
+        v= np.random.normal(loc=0.0, scale=1.0, size=size)
+        w = H@v 
+        noise_models[station_direction] = w #I will only begin saving persistently once I confirm the code works!
+    #synthetic_series = [signal] + [noise]
+    #synthetic_series = [X][B_true] + [noise]
+        synthetic_series = X_matrices[station]@[a, VELOCITY, c, d, e, f] + w
+        series_list.append(synthetic_series)
+    all_synthetic_series[station_direction] = series_list 
 
     return all_synthetic_series, true_velocities_dict
 
@@ -324,7 +326,7 @@ def fit_LS_models(station, direction, all_synthetic_series, C , true_velocities_
     # y = XB + e 
     # B = (X'X)^(-1) 
     X = X_matrices[station]
-    y = all_synthetic_series[station_direction]
+    y = np.stack(all_synthetic_series[station_direction], axis=1)
     OLS_betas, *_ = np.linalg.lstsq(X, y, rcond=None)
     fitted_OLS_models[station_direction] = OLS_betas
 
@@ -349,21 +351,20 @@ def fit_LS_models(station, direction, all_synthetic_series, C , true_velocities_
     p = 6 #parameters in the model
 
     
-    sigma_sqrd_GLS = (GLS_residuals @ residuals[station_direction])/(n-p)
-    Cov_GLS = sigma_sqrd_GLS * np.linalg.inv(X_whitened.T @ X_whitened)
-    GLS_var_formal = Cov_GLS[1,1] 
+    sigma_sqrd_GLS = np.sum(GLS_residuals**2, axis=0)/(n-p)
+    Cov_GLS = np.linalg.inv(X_whitened.T @ X_whitened)
+    GLS_var_formal = sigma_sqrd_GLS * Cov_GLS[1,1] 
 
-    sigma_sqrd_OLS = (OLS_residuals @ residuals[station_direction])/(n-p)
-    Cov_OLS = sigma_sqrd_OLS * np.linalg.inv(X.T @ X)
-    OLS_var_formal = Cov_OLS[1, 1]   # index 1 = b = velocity
+    sigma_sqrd_OLS = np.sum(OLS_residuals**2, axis=0)/(n-p)
+    Cov_OLS = np.linalg.inv(X.T @ X)
+    OLS_var_formal = sigma_sqrd_OLS * Cov_OLS[1, 1]   # index 1 = b = velocity
 
 
-    
     GLS_cov_realism_metric = (GLS_betas[1] - true_velocities_dict[station_direction])**2 / GLS_var_formal
     OLS_cov_realism_metric = (OLS_betas[1] - true_velocities_dict[station_direction])**2 / OLS_var_formal #This creates z
 
-    GLS_metric = GLS_cov_realism_metric**2
-    OLS_metric = OLS_cov_realism_metric**2 #This creates z^2, which should be the Mahalanobis Distance metric from Poore
+    GLS_metric = GLS_cov_realism_metric
+    OLS_metric = OLS_cov_realism_metric #This creates z^2, which should be the Mahalanobis Distance metric from Poore
     return GLS_metric, OLS_metric
     
 
@@ -380,7 +381,7 @@ for station in stations:
         station_direction = str(station) + "_" + str(dir)
         C = create_parametric_C(station, dir)
         H, _, _ = create_general_power_law_cov_matrix(station, station_slopes[station_direction])
-        synthetic_series, true_velocities_dict = generate_monte_carlo_series(H, station) #TODO: Need to fix this so im not generating ALL monte carlos each time.
+        synthetic_series, true_velocities_dict = generate_monte_carlo_series(H, station, dir) 
         GLS_metric, OLS_metric = fit_LS_models(station, dir, synthetic_series, C, true_velocities_dict) #This pipeline is a little messy. 'll clean it up.
 
 
