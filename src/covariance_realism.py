@@ -22,8 +22,9 @@
 #
 # Please NOTE that Poore et al quantifies uncertainty against REAL truth, while my uncertainty can
 # only be validated against against *simulated* truth. Claiming true uncertainty realism in the context
-# of orbit determination, I'd be making an overstatement. However, in the context of GNSS geodesy, 
-# my data is adequately 'realistic' since I'm not assuming white noise. TODO: add source.
+# of orbit determination, I'd be making an overstatement. However, in the context of GNSS geodesy (and to 
+# the extent of my education!!), my data is adequately 'realistic' since I'm not assuming white noise. 
+# The literature often strongly considers the effects of autocorrelation in  their uncertainty quantification processes.
 #
 # Please NOTE I must undergo a test to confirm the true GNSS stations' residuals are gaussian to align with the
 # assumptions maded in Poore et al. Otherwise I would need to generalize from a covariance realism metric (which I 
@@ -45,6 +46,7 @@ import json
 import matplotlib.pyplot as plt
 import math
 from scipy.signal import periodogram
+from signal_decomposition import bin_psd
 
 with open("alphas.json", "r") as f:
     alphas = json.load(f)
@@ -85,14 +87,8 @@ station_lengths = {
     "p441": len(p441)
 }
 
-#NOTE THESE ARE NOT ACCURATE YET. They must be calculated using the fitted line i will use for the find_characterized_var function
-# I should also probably segment according to the changepoints I calculated earlier. Means the alphas list I generated earlier will likely be scratched.
-station_slopes= {
-    "p349_north": alphas["p349_north"], "p349_east": alphas["p349_east"], "p349_vert": alphas["p349_vert"],
-    "p380_north": alphas["p380_north"], "p380_east": alphas["p380_east"], "p380_vert": alphas["p380_vert"],
-    "p434_north": alphas["p434_north"], "p434_east": alphas["p434_east"], "p434_vert": alphas["p434_vert"],
-    "p441_north": alphas["p441_north"], "p441_east": alphas["p441_east"], "p441_vert": alphas["p441_vert"],
-}
+
+
 print("Finished loading data")
 
 
@@ -114,9 +110,9 @@ print("Finished loading data")
 # the z distribution should follow a chi-sqrd distribution with df = 1.
 #     WHY? - In order to normalize the errors, we are doing z = (B_estimated - B_true)/σ_formal so the Var(z) = σ^2_true/σ^2_formal
 #            In other words, we are dividing actual uncertainty by what the model thinks its uncertainty is. Z^2 is actually the Mahalanobis distance at n = 1.
-#            This normalization will result in a chi-sqrd distribution. (Mahalanobis distance, btw, is essentially the distance between a point and a distribution. 
-#            I wont get in the weeds though.)TODO: STILL NEEDS EXTRA CLARIFICATION on WHY CHI SQRD?
-#TODO Among everything, be sure to explain why z² is the Mahalanobis Distance Metric from Poore et al. at n = 1
+#            This normalization will result in a chi-sqrd distribution. (Mahalanobis distance, btw, is essentially the distance between a point and a distribution.)
+#            WHY chi sqrd? Unfortunately, I must settle by refering you to Poore and saying, "The literature said so." 
+#
 # The issue we will encounter is OLS is BLIND to colored noise, 
 #     WHAT? - In other words, rather than considering correlated errors (σ^2_OLS@C), OLS assume the error is independent, and thus operates 
 #             under the premise that σ^2_OLS@C = σ^2_OLS@I. <-- identity matrix 
@@ -134,7 +130,7 @@ print("Finished loading data")
 # a covariance matrix to correct against heteroscedasticity and correlated error.
 # My monte carlo simulation needs to generate N synthetic series with identical covariance 
 # but different values in each epoch. In this way OLS and GLS can be refit under the same error
-# conditions. So once the covariance of the errors (not parameters TODO:CHECK) is determined, 
+# conditions. So once the covariance of the errors (not parameters) is determined, 
 # it will be reused without any changes. To estimate the covariance accurately, I use Tero et al's
 # parametric method of calculating C.
 
@@ -173,28 +169,46 @@ def create_general_power_law_cov_matrix(station, k):
     h = [1] 
     n = station_lengths[station]
     for i in range(n): #Make sure there is no mismatch between list beginnign with 0/1
-        h.append((i - (k/2) - 1)*(h[i-1]/i)) #This is how h is defined in Tero et al
+        index = i + 1
+        h.append((index - (k/2) - 1)*(h[index-1]/index)) #This is how h is defined in Tero et al
     H = np.zeros((n,n)) #I am going to convert h into matrix form, H
-    for i in range(n): #I need to fix this. it's not updating any values.
-        H[i, :i+1] = h[i::-1] #This is creating a lower triangular matrix
+    for i in range(n): 
+        #This is creating a lower triangular matrix by walking backward through h to populate rows.
+        H[i, :i+1] = h[i::-1]  #recal h[i::1] = h[start:stop:step]
     print(f"Completed general power-law covariance matrix for {station}.")
-    J = H@np.transpose(np.array(h[:n]))
+    J = H@np.transpose(H)#H@np.transpose(np.array(h[:n]))
     return H, h, J
 #J is a covariance matrix created from colored noise, dependent upon k. In my text, k seems 
 #       synonymous with k. J, when multiplied by var_colored (σ^2_colored), is the colored 
 #       component of covariance. Once used to calculate C, J is not needed again for monte carlo.
         
 
+#I never created persistent storage for the actual values in the PSD graph. 
+# So now I have to essentially REMAKE those graphs (without graphing them) and just save the value pairs.
+# A mistake I won't make again!
 def fit_psd_line(residual, fs=365.25, freq_cutoff=5):
-    #o compute alphas.json, on the same restricted range
+    #to compute alphas.json, on the same restricted range
     #(aka masked frequency range). 
     freqs, power = periodogram(residual, fs=fs)
     bin_centers, bin_means = bin_psd(freqs, power)
     mask = (bin_centers < freq_cutoff) & (~np.isnan(bin_means))
     log_f = np.log10(bin_centers[mask])
     log_p = np.log10(bin_means[mask])
-    slope, intercept = np.polyfit(log_f, log_p, 1)
+    slope, intercept = np.polyfit(log_f, log_p, 1) #This must be a negative value for the cov matrix to work!
     return slope, intercept
+
+
+directions = ["north", "east", "vert"]
+station_slopes = {}
+for station in stations:
+    for direction in directions:
+        key = str(station) + "_" + str(direction)
+        #Im creating a dictionary of the slopes of the fitted lines from the PSD graph. 
+        #This will be used to calculate C and H
+        station_slopes[key] = fit_psd_line(residuals[station]) 
+# I should also have segmented slopes according to the changepoints I calculated earlier. 
+# Additionally, the creation of this for loop means the alphas list I generated and saved 
+# earlier will likely be scratched.
 
 
 def power_at_freq(freq, slope, intercept):
@@ -222,7 +236,7 @@ def find_characterized_var(station, direction):
 
 def create_parametric_C(station, direction):
     key = f"{station}_{direction}"
-    k = station_slopes[key]
+    k = station_slopes[key] 
     n = station_lengths[station]
     H, h, J = create_general_power_law_cov_matrix(station, k)
     var_white, var_colored = find_characterized_var(station, direction)
@@ -271,17 +285,11 @@ def create_parametric_C(station, direction):
 
 
 #The goal of this section is to generate N Synthetic ERROR series
-# TODO: all_synthetic_series is built here as a flat list via
-# nested .append() calls, but fit_LS_models() below reads from it with
-# all_synthetic_series[station_direction], as if it were a dict. Decide on one structure
-# (e.g. dict keyed by station_direction -> list of N series) and make both ends consistent.
-# Same issue applies to all_velocities / VELOCITY: this returns a list (one per direction),
-# but fit_LS_models uses VELOCITY as a single scalar in the metric formula.
 def generate_monte_carlo_series(H, station):
     directions = ["north", "east", "vert"]
     noise_models = []
-    all_synthetic_series = []
-    all_velocities = []
+    all_synthetic_series = {}
+    all_velocities = {}
     for direction in directions:
         station_direction = str(station) + "_" + str(direction)
         #This sets the TRUE velocity that OLS and GLS will conform to
@@ -289,7 +297,7 @@ def generate_monte_carlo_series(H, station):
         a, c, d, e, f = betas[station_direction][[0, 2, 3, 4, 5]]
         N = 500 #subject to change.
         size = station_lengths[station]
-        all_velocities.append(VELOCITY)
+        true_velocities_dict[station_direction] = VELOCITY
         
         #Brief: This section generate N synthetic ground station motion time series.
         for simulation in range(N):
@@ -299,17 +307,17 @@ def generate_monte_carlo_series(H, station):
         #synthetic_series = [signal] + [noise]
         #synthetic_series = [X][B_true] + [noise]
             synthetic_series = X_matrices[station]@[a, VELOCITY, c, d, e, f] + w
-            all_synthetic_series.append(synthetic_series) #I will make a dictionary instead!!
+            all_synthetic_series[station_direction] = synthetic_series #I will make a dictionary instead!!
 
-    return all_synthetic_series, all_velocities
+    return all_synthetic_series, true_velocities_dict
 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # Step 4: Refit OLS/GLS on each Series   
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 
-#OLS ROUGH OUTLINE ONLY 
+
 #this function will likely be in a for loop.
-def fit_LS_models(station, direction, all_synthetic_series, C ,VELOCITY):
+def fit_LS_models(station, direction, all_synthetic_series, C , true_velocities_dict):
     fitted_OLS_models = {}
     station_direction = str(station) + "_" + str(direction)
     #OLS:
@@ -340,22 +348,19 @@ def fit_LS_models(station, direction, all_synthetic_series, C ,VELOCITY):
     n = station_lengths[station]
     p = 6 #parameters in the model
 
-    # TODO: double check (1) which residual vector belongs
-    # in each sum of squares (both lines currently dot against the same `residuals` variable
-    # from the top-level residuals.json, not GLS_residuals/OLS_residuals), and (2) whether
-    # GLS's formal covariance should be built from X or from X_whitened.
-    sigma_sqrd_GLS = (GLS_residuals @ residuals)/(n-p)
-    Cov_GLS = sigma_sqrd_GLS * np.linalg.inv(X.T @ X)
+    
+    sigma_sqrd_GLS = (GLS_residuals @ residuals[station_direction])/(n-p)
+    Cov_GLS = sigma_sqrd_GLS * np.linalg.inv(X_whitened.T @ X_whitened)
     GLS_var_formal = Cov_GLS[1,1] 
 
-    sigma_sqrd_OLS = (OLS_residuals @ residuals)/(n-p)
+    sigma_sqrd_OLS = (OLS_residuals @ residuals[station_direction])/(n-p)
     Cov_OLS = sigma_sqrd_OLS * np.linalg.inv(X.T @ X)
     OLS_var_formal = Cov_OLS[1, 1]   # index 1 = b = velocity
 
 
-    #NOTE: I am aware that I am improperly dealing with these vectors at the moment. this is a comceptual rough draft.
-    GLS_cov_realism_metric = (GLS_betas[1] - VELOCITY)**2 / GLS_var_formal
-    OLS_cov_realism_metric = (OLS_betas[1] - VELOCITY)**2 / OLS_var_formal #This creates z
+    
+    GLS_cov_realism_metric = (GLS_betas[1] - true_velocities_dict[station_direction])**2 / GLS_var_formal
+    OLS_cov_realism_metric = (OLS_betas[1] - true_velocities_dict[station_direction])**2 / OLS_var_formal #This creates z
 
     GLS_metric = GLS_cov_realism_metric**2
     OLS_metric = OLS_cov_realism_metric**2 #This creates z^2, which should be the Mahalanobis Distance metric from Poore
@@ -368,15 +373,15 @@ def fit_LS_models(station, direction, all_synthetic_series, C ,VELOCITY):
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # It is helpful to recall that z² is the Mahalanobis Distance Metric from Poore et al. at n = 1
 
-directions = ["north", "east", "vert"]
+
 
 for station in stations:
     for dir in directions:
         station_direction = str(station) + "_" + str(dir)
         C = create_parametric_C(station, dir)
         H, _, _ = create_general_power_law_cov_matrix(station, station_slopes[station_direction])
-        synthetic_series, velocities_true = generate_monte_carlo_series(H, station) #TODO: Need to fix this so im not generating ALL monte carlos each time.
-        GLS_metric, OLS_metric = fit_LS_models(station, dir, synthetic_series, C, velocities_true) #This pipeline is a little messy. 'll clean it up.
+        synthetic_series, true_velocities_dict = generate_monte_carlo_series(H, station) #TODO: Need to fix this so im not generating ALL monte carlos each time.
+        GLS_metric, OLS_metric = fit_LS_models(station, dir, synthetic_series, C, true_velocities_dict) #This pipeline is a little messy. 'll clean it up.
 
 
 

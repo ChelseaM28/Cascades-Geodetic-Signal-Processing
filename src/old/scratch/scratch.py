@@ -1,6 +1,52 @@
 #This file stores dead code
 
-#From signal decomposition
+#NOTE From changepoint_detection.py
+
+'''
+This was me testing the lower triangular matrix in a collab notebook
+import numpy as np
+h = [1]
+k = -2 #doesn't work unless k is negative!
+n = 10
+for i in range(n):
+  index = 1 + i
+  h.append((index - (k/2) - 1)*(h[index-1]/index))
+print(h)
+H = np.zeros((n,n)) #I am going to convert h into matrix form, H
+for i in range(n): 
+      #h[h::-1]  = h[start:stop:skip]
+      H[i, :i+1] = h[i::-1] #The whole list gets filled in!
+print(H)
+
+'''
+
+
+'''print(f"Length of residuals for p349_north: {len(residuals['p349_north'])}")
+signal = residuals['p349_north']
+pen_values = [110,112,114,116,118,120]
+counts = []
+algo = rpt.Pelt(model="rbf", jump=10).fit(signal)
+
+for pen in pen_values:
+    print("Beginning penalty tracking: ", pen)
+    breaks = algo.predict(pen=pen)
+    counts.append(len(breaks) - 1)
+
+plt.figure()
+#will try linear first, not loglog
+plt.plot(pen_values, counts, color='red', linewidth=2, marker='o', label="penalty vs. # of change points")
+plt.xlabel("Penalty Value")
+plt.ylabel("Change Points Detected")
+plt.title("PenaltiesXChange Points p349_north")
+plt.suptitle(f"jump={10}, model=rbf", fontsize=9, y=0.93)
+plt.legend()
+plt.tight_layout()
+plt.savefig("p349_north_penalties.png", dpi=120)
+print("Saved p349_north_penalties")
+'''
+
+
+#NOTE From signal decomposition
 
 '''
 #I'm only commenting this out so I don't continue to create more plots each time I run!
@@ -78,34 +124,4 @@ for key, value in residuals.items():
     plt.close()
  
 print("Done plotting remaining PSDs.")'''
-
-
-
-
-
-#From changepoint_detection.py
-
-'''print(f"Length of residuals for p349_north: {len(residuals['p349_north'])}")
-signal = residuals['p349_north']
-pen_values = [110,112,114,116,118,120]
-counts = []
-algo = rpt.Pelt(model="rbf", jump=10).fit(signal)
-
-for pen in pen_values:
-    print("Beginning penalty tracking: ", pen)
-    breaks = algo.predict(pen=pen)
-    counts.append(len(breaks) - 1)
-
-plt.figure()
-#will try linear first, not loglog
-plt.plot(pen_values, counts, color='red', linewidth=2, marker='o', label="penalty vs. # of change points")
-plt.xlabel("Penalty Value")
-plt.ylabel("Change Points Detected")
-plt.title("PenaltiesXChange Points p349_north")
-plt.suptitle(f"jump={10}, model=rbf", fontsize=9, y=0.93)
-plt.legend()
-plt.tight_layout()
-plt.savefig("p349_north_penalties.png", dpi=120)
-print("Saved p349_north_penalties")
-'''
 
