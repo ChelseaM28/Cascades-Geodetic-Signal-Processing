@@ -47,6 +47,7 @@ import matplotlib.pyplot as plt
 import math
 from scipy.signal import periodogram
 from signal_decomposition import bin_psd
+from scipy.stats import kstest #goodness of fit test
 
 with open("alphas.json", "r") as f:
     alphas = json.load(f)
@@ -287,7 +288,7 @@ def create_parametric_C(station, direction):
 #The goal of this section is to generate N Synthetic ERROR series
 def generate_monte_carlo_series(H, station, direction):
     directions = ["north", "east", "vert"]
-    noise_models = {}
+    noise_models = []
     all_synthetic_series = {}
     true_velocities_dict = {}
     series_list = []
@@ -304,7 +305,7 @@ def generate_monte_carlo_series(H, station, direction):
     for simulation in range(N):
         v= np.random.normal(loc=0.0, scale=1.0, size=size)
         w = H@v 
-        noise_models[station_direction] = w #I will only begin saving persistently once I confirm the code works!
+        noise_models.append(w) #I will only begin saving persistently once I confirm the code works!
     #synthetic_series = [signal] + [noise]
     #synthetic_series = [X][B_true] + [noise]
         synthetic_series = X_matrices[station]@[a, VELOCITY, c, d, e, f] + w
@@ -376,6 +377,9 @@ def fit_LS_models(station, direction, all_synthetic_series, C , true_velocities_
 
 
 
+GLS_metrics = {}
+OLS_metrics = {}
+
 for station in stations:
     for dir in directions:
         station_direction = str(station) + "_" + str(dir)
@@ -383,7 +387,8 @@ for station in stations:
         H, _, _ = create_general_power_law_cov_matrix(station, station_slopes[station_direction])
         synthetic_series, true_velocities_dict = generate_monte_carlo_series(H, station, dir) 
         GLS_metric, OLS_metric = fit_LS_models(station, dir, synthetic_series, C, true_velocities_dict) #This pipeline is a little messy. 'll clean it up.
-
+        GLS_metrics[station_direction] = GLS_metric
+        OLS_metrics[station_direction] = OLS_metric
 
 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
@@ -393,7 +398,7 @@ for station in stations:
 
 #@Brief: This section will plot OLS/GLS z² values on a histogram
 # Compute histogram
-m = _ #creating m discrete cells
+m = 100 # if i were doing a test, this would need to be a specific number
 GLS_hist, bin_edges = np.histogram(GLS_metric, bins=m)
 
 print("Counts:", GLS_hist)
@@ -420,6 +425,10 @@ plt.show()
 #@Brief: This section will perform a goodness of fit test to confirm visual results
 # compare the number of values in the cell compared to how many should be in the cell in a chi-sqrd dist
 # compute chi sqrd test stat and compare to critical value from chi-sqr distr
+
+
+kstest(GLS_metrics, 'chi2', args=(1,)) #TODO Er... maybe not
+kstest(OLS_metrics, 'chi2', args=(1,))
 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # Analysis of the significance of the OLS/GLS σ² histograms
