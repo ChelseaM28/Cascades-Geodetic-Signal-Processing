@@ -72,22 +72,22 @@ from signal_decomposition import bin_psd
 
 p349 = pd.read_json("p349.json", orient="records")
 p349['Date'] = pd.to_datetime(p349['Date'])
-p380 = pd.read_json("p380.json", orient="records")
-p380['Date'] = pd.to_datetime(p380['Date'])
-p434 = pd.read_json("p434.json", orient="records")
-p434['Date'] = pd.to_datetime(p434['Date'])
+#p380 = pd.read_json("p380.json", orient="records")
+#p380['Date'] = pd.to_datetime(p380['Date'])
+#p434 = pd.read_json("p434.json", orient="records")
+#p434['Date'] = pd.to_datetime(p434['Date'])
 #p441 = pd.read_json("p441.json", orient="records")
 #p441['Date'] = pd.to_datetime(p441['Date'])
 
-stations = {'p349': p349, 'p380': p380, 'p434': p434}#, 'p441': p441
+stations = {'p349': p349}#, 'p380': p380} #, 'p434': p434}#, 'p441': p441
 station_dates = {
-    "p349": p349['Date'], "p380": p380['Date'], "p434": p434['Date']#, "p441": p441['Date'],
+    "p349": p349['Date']#, "p380": p380['Date']#, "p434": p434['Date']#, "p441": p441['Date'],
 }
 
 station_lengths = {
     "p349": len(p349),
-    "p380": len(p380),
-    "p434": len(p434), 
+    #"p380": len(p380),
+    #"p434": len(p434), 
     #"p441": len(p441)
 }
 
@@ -197,7 +197,7 @@ def create_general_power_law_cov_matrix(station, k):
 # So now I have to essentially REMAKE those graphs (without graphing them) and just save the value pairs.
 # A mistake I won't make again!
 def fit_psd_line(residual, fs=365.25, freq_cutoff=5):
-    print("\n\nRunning 'fit_psd_line.'\nInputs: \nStation Residual Series")
+    print("\n\nRunning 'fit_psd_line.'")
     #to compute alphas.json, on the same restricted range
     #(aka masked frequency range). 
     freqs, power = periodogram(residual, fs=fs)
@@ -235,7 +235,7 @@ def power_at_freq(freq, slope, intercept):
 
 
 def find_characterized_var(station, direction):
-    print("\n\nRunning 'find_characterized_var.'\nInputs: \nStation and Direction.")
+    print("\n\nRunning 'find_characterized_var.'")
     white_freq = 10**(0.7)
     colored_freq = 365.25 #This is the value at which f/f_s = 1, so when plugged 
     # into the equation for power-law noise (figure 22 in Tero et al.), the resulting 
@@ -254,7 +254,7 @@ def find_characterized_var(station, direction):
     return var_white, var_colored
 
 def create_parametric_C(station, direction):
-    print("\n\nRunning 'create_parametric_C.' \nInputs: \nStation and Direction.")
+    print("\n\nRunning 'create_parametric_C.'")
     key = f"{station}_{direction}"
     k = station_slopes[key] 
     n = station_lengths[station]
@@ -306,7 +306,7 @@ def create_parametric_C(station, direction):
 
 #The goal of this section is to generate N Synthetic ERROR series
 def generate_monte_carlo_series(H, station, direction):
-    print(f"\n\nRunning generate_monte_carlo_series.\nInput:\nH\nStation and direction.")
+    print(f"\n\nRunning generate_monte_carlo_series.")
     directions = ["north", "east", "vert"]
     noise_models = []
     all_synthetic_series = {}
@@ -341,7 +341,7 @@ def generate_monte_carlo_series(H, station, direction):
 
 #this function will likely be in a for loop.
 def fit_LS_models(station, direction, all_synthetic_series, C , true_velocities_dict):
-    print("\n\nRunning 'fit_LS_models.'\nInput:\nStation and Direction.\nAll synthetic series\nC (Cov Matrix)\nTrue velocities dictionary.")
+    print("\n\nRunning 'fit_LS_models.'")
     fitted_OLS_models = {}
     station_direction = str(station) + "_" + str(direction)
     #OLS:
@@ -376,11 +376,16 @@ def fit_LS_models(station, direction, all_synthetic_series, C , true_velocities_
     sigma_sqrd_GLS = np.sum(GLS_residuals**2, axis=0)/(n-p)
     Cov_GLS = np.linalg.inv(X_whitened.T @ X_whitened)
     GLS_var_formal = sigma_sqrd_GLS * Cov_GLS[1,1] 
+    print(f"sigma_sqrd_GLS: {sigma_sqrd_GLS}")
+    print(f"Cov_GLS: {Cov_GLS[1,1]}")
+    print(f"GLS_var_formal: {GLS_var_formal}")
 
     sigma_sqrd_OLS = np.sum(OLS_residuals**2, axis=0)/(n-p)
     Cov_OLS = np.linalg.inv(X.T @ X)
     OLS_var_formal = sigma_sqrd_OLS * Cov_OLS[1, 1]   # index 1 = b = velocity
-
+    print(f"sigma_sqrd_OLS: {sigma_sqrd_OLS}")
+    print(f"Cov_OLS: {Cov_OLS[1,1]}")
+    print(f"OLS_var_formal: {OLS_var_formal}")
 
     GLS_cov_realism_metric = (GLS_betas[1] - true_velocities_dict[station_direction])**2 / GLS_var_formal
     OLS_cov_realism_metric = (OLS_betas[1] - true_velocities_dict[station_direction])**2 / OLS_var_formal #This creates z
@@ -408,6 +413,7 @@ for station in stations:
         print(f"* - * - * - * - * {station_direction} * - * - * - * - *")
         C = create_parametric_C(station, dir)
         H, _, _ = create_general_power_law_cov_matrix(station, station_slopes[station_direction])
+
         synthetic_series, true_velocities_dict = generate_monte_carlo_series(H, station, dir) 
         GLS_metric, OLS_metric = fit_LS_models(station, dir, synthetic_series, C, true_velocities_dict) #This pipeline is a little messy. 'll clean it up.
         GLS_metrics[station_direction] = GLS_metric
