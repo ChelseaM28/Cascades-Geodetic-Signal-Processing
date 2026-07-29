@@ -37,6 +37,7 @@
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # Step 0: Load libraries and data
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+
 print("Welcome to your Covariance Realism Summer 2026 Experience. \nLoading Libraries, data, and functions.")
 import os
 import time
@@ -47,7 +48,8 @@ import json
 import matplotlib.pyplot as plt
 import math
 from scipy.signal import periodogram
-from signal_decomposition import bin_psd
+import subprocess
+import sys
 from scipy.stats import kstest #goodness of fit test
 
 with open("alphas.json", "r") as f:
@@ -66,6 +68,10 @@ with open("metadata.json", "r") as f:
 with open("changepoints.json", "r") as f:
     changepoints = json.load(f)
 changepoints = {key: np.array(value) for key, value in changepoints.items()}
+
+
+
+from signal_decomposition import bin_psd
 
 
 p349 = pd.read_json("p349.json", orient="records")
@@ -304,7 +310,7 @@ def create_parametric_C(station, direction):
 
 #The goal of this section is to generate N Synthetic ERROR series
 def generate_monte_carlo_series(H, station, direction):
-    print(f"\n\nRunning generate_monte_carlo_series.\nInput:\nH: {H}\nStation and direction.")
+    print(f"\n\nRunning generate_monte_carlo_series.\nInput:\nH\nStation and direction.")
     directions = ["north", "east", "vert"]
     noise_models = []
     all_synthetic_series = {}
@@ -313,7 +319,7 @@ def generate_monte_carlo_series(H, station, direction):
     
     station_direction = str(station) + "_" + str(direction)
     #This sets the TRUE velocity that OLS and GLS will conform to
-    VELOCITY = betas[station_direction][1].round() #I need to think about whether this is deterministic
+    VELOCITY = betas[station_direction][1]
     a, c, d, e, f = betas[station_direction][[0, 2, 3, 4, 5]]
     N = 500 #subject to change.
     size = station_lengths[station]
@@ -448,7 +454,10 @@ plt.hist(gls_realism_metrics, bins=m, edgecolor='black')
 plt.title("Histogram of GLS Realism Metrics")
 plt.xlabel("Value")
 plt.ylabel("Frequency")
-plt.show()
+plt.legend()
+plt.tight_layout()
+plt.savefig("GLS_Histogram.png", dpi=120)
+print("Saved GLS_Histogram")
 
 
 
@@ -456,7 +465,10 @@ plt.hist(ols_realism_metrics, bins=m, edgecolor='black')
 plt.title("Histogram of OLS Realism Metrics")
 plt.xlabel("Value")
 plt.ylabel("Frequency")
-plt.show()
+plt.legend()
+plt.tight_layout()
+plt.savefig("OLS_Histogram.png", dpi=120)
+print("Saved OLS_Histogram")
 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # Analysis of the significance of the OLS/GLS σ² histograms

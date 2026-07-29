@@ -81,7 +81,7 @@ import numpy as np
 #PSD imports
 from scipy.signal import periodogram
 import matplotlib.pyplot as plt
-from signal_decomposition import bin_psd
+
 
 
 with open("metadata.json", "r") as f:
