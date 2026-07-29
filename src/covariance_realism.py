@@ -40,16 +40,12 @@
 
 print("Welcome to your Covariance Realism Summer 2026 Experience. \nLoading Libraries, data, and functions.")
 import os
-import time
 os.chdir("/workspaces/GNSS/data")
 import pandas as pd
 import numpy as np  
 import json
 import matplotlib.pyplot as plt
-import math
 from scipy.signal import periodogram
-import subprocess
-import sys
 from scipy.stats import kstest #goodness of fit test
 
 with open("alphas.json", "r") as f:
@@ -80,19 +76,19 @@ p380 = pd.read_json("p380.json", orient="records")
 p380['Date'] = pd.to_datetime(p380['Date'])
 p434 = pd.read_json("p434.json", orient="records")
 p434['Date'] = pd.to_datetime(p434['Date'])
-p441 = pd.read_json("p441.json", orient="records")
-p441['Date'] = pd.to_datetime(p441['Date'])
+#p441 = pd.read_json("p441.json", orient="records")
+#p441['Date'] = pd.to_datetime(p441['Date'])
 
-stations = {'p349': p349, 'p380': p380, 'p434': p434, 'p441': p441}
+stations = {'p349': p349, 'p380': p380, 'p434': p434}#, 'p441': p441
 station_dates = {
-    "p349": p349['Date'], "p380": p380['Date'], "p434": p434['Date'], "p441": p441['Date'],
+    "p349": p349['Date'], "p380": p380['Date'], "p434": p434['Date']#, "p441": p441['Date'],
 }
 
 station_lengths = {
     "p349": len(p349),
     "p380": len(p380),
     "p434": len(p434), 
-    "p441": len(p441)
+    #"p441": len(p441)
 }
 
 
@@ -409,6 +405,7 @@ print("* - * - * - * - * Time to begin the computational churl * - * - * - * - *
 for station in stations:
     for dir in directions:
         station_direction = str(station) + "_" + str(dir)
+        print(f"* - * - * - * - * {station_direction} * - * - * - * - *")
         C = create_parametric_C(station, dir)
         H, _, _ = create_general_power_law_cov_matrix(station, station_slopes[station_direction])
         synthetic_series, true_velocities_dict = generate_monte_carlo_series(H, station, dir) 
@@ -441,8 +438,8 @@ ols_realism_metrics = [item for sublist in ols_realism_metrics for item in subli
 result_gls = kstest(gls_realism_metrics, 'chi2', args=(1,)) 
 result_ols = kstest(ols_realism_metrics, 'chi2', args=(1,))
 
-print(f"GLS DISTRIBUTION TEST RESULTS: {result_gls}")
-print(f"OLS DISTRIBUTION TEST RESULTS: {result_ols}")
+print(f"GLS DISTRIBUTION TEST RESULTS: \n{result_gls}\n")
+print(f"OLS DISTRIBUTION TEST RESULTS: \n{result_ols}")
 
 # @Brief: This section will plot OLS/GLS z² values on a histogram
 
