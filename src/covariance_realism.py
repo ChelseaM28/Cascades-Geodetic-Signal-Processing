@@ -1,8 +1,5 @@
 ### covariance_realism.py
 
-# !! ----------- WORK IN PROGRESS ----------- !!
-
-
 # This script will quantify the uncertainty of my velocity estimates using a distribution comparison 
 # of Monte-Carlo samples of uncertainty realism metrics (at n = 1) against the matching chi-squared distribution. 
 # Jul 18, 2026
@@ -305,7 +302,7 @@ def create_parametric_C(station, direction):
 
 
 #The goal of this section is to generate N Synthetic ERROR series
-def generate_monte_carlo_series(H, station, direction):
+def generate_monte_carlo_series(C, station, direction):
     print(f"\n\nRunning generate_monte_carlo_series.")
     directions = ["north", "east", "vert"]
     noise_models = []
@@ -320,12 +317,14 @@ def generate_monte_carlo_series(H, station, direction):
     N = 500 #subject to change.
     size = station_lengths[station]
     true_velocities_dict[station_direction] = VELOCITY
+
+    L = np.linalg.cholesky(C) #Post Round 3
     
     #Brief: This section generate N synthetic ground station motion time series.
     for simulation in range(N):
         v= np.random.normal(loc=0.0, scale=1.0, size=size)
-        w = H@v 
-        noise_models.append(w) #I will only begin saving persistently once I confirm the code works!
+        w = L@v   
+        #noise_models.append(w) #I will only begin saving persistently once I confirm the code works!
     #synthetic_series = [signal] + [noise]
     #synthetic_series = [X][B_true] + [noise]
         synthetic_series = X_matrices[station]@[a, VELOCITY, c, d, e, f] + w
@@ -411,10 +410,10 @@ for station in stations:
     for dir in directions:
         station_direction = str(station) + "_" + str(dir)
         print(f"* - * - * - * - * {station_direction} * - * - * - * - *")
-        C = create_parametric_C(station, dir)
-        H, _, _ = create_general_power_law_cov_matrix(station, station_slopes[station_direction])
+        C = create_parametric_C(station, dir) 
+        #H, _, _ = create_general_power_law_cov_matrix(station, station_slopes[station_direction])
 
-        synthetic_series, true_velocities_dict = generate_monte_carlo_series(H, station, dir) 
+        synthetic_series, true_velocities_dict = generate_monte_carlo_series(C, station, dir) 
         GLS_metric, OLS_metric = fit_LS_models(station, dir, synthetic_series, C, true_velocities_dict) #This pipeline is a little messy. 'll clean it up.
         GLS_metrics[station_direction] = GLS_metric
         OLS_metrics[station_direction] = OLS_metric
