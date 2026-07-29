@@ -37,6 +37,7 @@
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # Step 0: Load libraries and data
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+print("Welcome to your Covariance Realism Summer 2026 Experience. \nLoading Libraries, data, and functions.")
 import os
 import time
 os.chdir("/workspaces/GNSS/data")
@@ -156,6 +157,8 @@ print("Finished loading data")
 # STEPS 5-6: These will complete the distribution comparison and interpret the results as 
 # described above.
 
+print("\nPart 1: Parametric Estimation of C for GLS\n\nPart 2: Monte Carlo Series Generation\n\nPart 3: Distribution Comparison.")
+
 
 # END MATHEMATICAL REASONING
 
@@ -166,7 +169,10 @@ print("Finished loading data")
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 
 #Brief: This section will use define a noise model using discoveries from OLS
+
+
 def create_general_power_law_cov_matrix(station, k):
+    print(f"\n\nRunning 'create_general_power_law_cov_matrix.' \nInputs:\nStation: {station}\nK: {k}")
     h = [1] 
     n = station_lengths[station]
     for i in range(n): #Make sure there is no mismatch between list beginnign with 0/1
@@ -178,6 +184,7 @@ def create_general_power_law_cov_matrix(station, k):
         H[i, :i+1] = h[i::-1]  #recal h[i::1] = h[start:stop:step]
     print(f"Completed general power-law covariance matrix for {station}.")
     J = H@np.transpose(H)#H@np.transpose(np.array(h[:n]))
+    print("Completed 'create_general_power_law_cov_matrix.'")
     return H, h, J
 #J is a covariance matrix created from colored noise, dependent upon k. In my text, k seems 
 #       synonymous with k. J, when multiplied by var_colored (σ^2_colored), is the colored 
@@ -188,6 +195,7 @@ def create_general_power_law_cov_matrix(station, k):
 # So now I have to essentially REMAKE those graphs (without graphing them) and just save the value pairs.
 # A mistake I won't make again!
 def fit_psd_line(residual, fs=365.25, freq_cutoff=5):
+    print("\n\nRunning 'fit_psd_line.'\nInputs: \nStation Residual Series")
     #to compute alphas.json, on the same restricted range
     #(aka masked frequency range). 
     freqs, power = periodogram(residual, fs=fs)
@@ -196,29 +204,36 @@ def fit_psd_line(residual, fs=365.25, freq_cutoff=5):
     log_f = np.log10(bin_centers[mask])
     log_p = np.log10(bin_means[mask])
     slope, intercept = np.polyfit(log_f, log_p, 1) #This must be a negative value for the cov matrix to work!
+    print("Completed Fitting PSD Line for this station.")
     return slope, intercept
 
-
+print("\n\nCreating global station_slopes dictionary using recalculated periodogram.")
 directions = ["north", "east", "vert"]
 station_slopes = {}
 for station in stations:
     for direction in directions:
         key = str(station) + "_" + str(direction)
+        print(f"Currently working on: {key}")
         #Im creating a dictionary of the slopes of the fitted lines from the PSD graph. 
         #This will be used to calculate C and H
         station_slopes[key], _ = fit_psd_line(residuals[key]) 
+print("Completed creating global station_slopes.")
 # I should also have segmented slopes according to the changepoints I calculated earlier. 
 # Additionally, the creation of this for loop means the alphas list I generated and saved 
 # earlier will likely be scratched.
 
 
 def power_at_freq(freq, slope, intercept):
+    print(f"\n\nRunning 'power_at_freq.'\nInputs: \nFrequency: {freq}\nSlope: {slope}\nIntercept: {intercept}")
     #Reads power off the fitted log-log line at a given frequency.
     log_power = slope * np.log10(freq) + intercept
-    return 10 ** log_power
+    power = 10 ** log_power
+    print(f"Completed finding power ({power}) at frequency {freq}.")
+    return power
 
 
 def find_characterized_var(station, direction):
+    print("\n\nRunning 'find_characterized_var.'\nInputs: \nStation and Direction.")
     white_freq = 10**(0.7)
     colored_freq = 365.25 #This is the value at which f/f_s = 1, so when plugged 
     # into the equation for power-law noise (figure 22 in Tero et al.), the resulting 
@@ -233,9 +248,11 @@ def find_characterized_var(station, direction):
     slope, intercept = fit_psd_line(residuals[key])
     var_white = power_at_freq(white_freq, slope, intercept)
     var_colored = power_at_freq(colored_freq, slope, intercept)
+    print("\nCompleted running 'find_characterize_var.'")
     return var_white, var_colored
 
 def create_parametric_C(station, direction):
+    print("\n\nRunning 'create_parametric_C.' \nInputs: \nStation and Direction.")
     key = f"{station}_{direction}"
     k = station_slopes[key] 
     n = station_lengths[station]
@@ -247,7 +264,7 @@ def create_parametric_C(station, direction):
     #This is the noise model when decomposed into its white and colored components:
     C = var_colored*J + var_white*I
     #The parameters we estimate are var_colored, k (which, recall, helps build J), and var_white.
-
+    print("Completed running 'create_parametric_C'.")
     return C #This C will be used to contruct the GLS equation.
 
 
@@ -287,6 +304,7 @@ def create_parametric_C(station, direction):
 
 #The goal of this section is to generate N Synthetic ERROR series
 def generate_monte_carlo_series(H, station, direction):
+    print(f"\n\nRunning generate_monte_carlo_series.\nInput:\nH: {H}\nStation and direction.")
     directions = ["north", "east", "vert"]
     noise_models = []
     all_synthetic_series = {}
@@ -311,7 +329,7 @@ def generate_monte_carlo_series(H, station, direction):
         synthetic_series = X_matrices[station]@[a, VELOCITY, c, d, e, f] + w
         series_list.append(synthetic_series)
     all_synthetic_series[station_direction] = series_list 
-
+    print("Completed running 'generate_monte_carlo_series.'")
     return all_synthetic_series, true_velocities_dict
 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
@@ -321,6 +339,7 @@ def generate_monte_carlo_series(H, station, direction):
 
 #this function will likely be in a for loop.
 def fit_LS_models(station, direction, all_synthetic_series, C , true_velocities_dict):
+    print("\n\nRunning 'fit_LS_models.'\nInput:\nStation and Direction.\nAll synthetic series\nC (Cov Matrix)\nTrue velocities dictionary.")
     fitted_OLS_models = {}
     station_direction = str(station) + "_" + str(direction)
     #OLS:
@@ -346,7 +365,7 @@ def fit_LS_models(station, direction, all_synthetic_series, C , true_velocities_
     #Brief: This section will recover σ²_OLS and σ²_GLS from each simulation
     #Find residuals
     OLS_residuals = y - X@OLS_betas
-    GLS_residuals = y - X@GLS_betas
+    GLS_residuals = y_whitened - X_whitened@GLS_betas
 
     n = station_lengths[station]
     p = 6 #parameters in the model
@@ -366,6 +385,7 @@ def fit_LS_models(station, direction, all_synthetic_series, C , true_velocities_
 
     GLS_metric = GLS_cov_realism_metric
     OLS_metric = OLS_cov_realism_metric #This creates z^2, which should be the Mahalanobis Distance metric from Poore
+    print("Completed running 'fit_LS_models.")
     return GLS_metric, OLS_metric
     
 
@@ -379,7 +399,7 @@ def fit_LS_models(station, direction, all_synthetic_series, C , true_velocities_
 
 GLS_metrics = {}
 OLS_metrics = {}
-
+print("* - * - * - * - * Time to begin the computational churl * - * - * - * - * \n")
 for station in stations:
     for dir in directions:
         station_direction = str(station) + "_" + str(dir)
@@ -390,45 +410,53 @@ for station in stations:
         GLS_metrics[station_direction] = GLS_metric
         OLS_metrics[station_direction] = OLS_metric
 
-
+print("Computations complete. Monte Carlo Series Generation Complete.")
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # Step 6: Distribution Comparison (FOCAL POINT OF PROJECT)
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 
+#@Brief: This section will perform a goodness of fit test to confirm visual results
+# compare the number of values in the cell compared to how many should be in the cell in a chi-sqrd dist
+# compute chi sqrd test stat and compare to critical value from chi-sqr distr
 
-#@Brief: This section will plot OLS/GLS z² values on a histogram
-# Compute histogram
+# i need all GLS metrics to be compared at once. Then all OLS metrics.
+# kstest takes a 1D array
+print("\n\n* - * - * - * - * PERFORMING DISTRUBUTION COMPARISON * - * - * - * - * \n")
+gls_realism_metrics = []
+ols_realism_metrics = []
+for key, value in GLS_metrics.items():
+    gls_realism_metrics.append(value)
+for key, value in OLS_metrics.items():
+    ols_realism_metrics.append(value)
+
+gls_realism_metrics = [item for sublist in gls_realism_metrics for item in sublist]
+ols_realism_metrics = [item for sublist in ols_realism_metrics for item in sublist]
+
+result_gls = kstest(gls_realism_metrics, 'chi2', args=(1,)) 
+result_ols = kstest(ols_realism_metrics, 'chi2', args=(1,))
+
+print(f"GLS DISTRIBUTION TEST RESULTS: {result_gls}")
+print(f"OLS DISTRIBUTION TEST RESULTS: {result_ols}")
+
+# @Brief: This section will plot OLS/GLS z² values on a histogram
+
+print("\n\n* - * - * - * - * Generating Visualizations * - * - * - * - * \n")
 m = 100 # if i were doing a test, this would need to be a specific number
-GLS_hist, bin_edges = np.histogram(GLS_metric, bins=m)
 
-print("Counts:", GLS_hist)
-print("Bin Edges:", bin_edges)
 
-plt.hist(GLS_hist, bins=5, edgecolor='black')
+plt.hist(gls_realism_metrics, bins=m, edgecolor='black')
 plt.title("Histogram of GLS Realism Metrics")
 plt.xlabel("Value")
 plt.ylabel("Frequency")
 plt.show()
 
 
-OLS_hist,bin_edges = np.histogram(OLS_metric, bins=m)
 
-print("Counts:", OLS_hist)
-print("Bin Edges:", bin_edges)
-
-plt.hist(OLS_hist, bins=5, edgecolor='black')
+plt.hist(ols_realism_metrics, bins=m, edgecolor='black')
 plt.title("Histogram of OLS Realism Metrics")
 plt.xlabel("Value")
 plt.ylabel("Frequency")
 plt.show()
-
-#@Brief: This section will perform a goodness of fit test to confirm visual results
-# compare the number of values in the cell compared to how many should be in the cell in a chi-sqrd dist
-# compute chi sqrd test stat and compare to critical value from chi-sqr distr
-
-
-kstest(GLS_metrics, 'chi2', args=(1,)) #TODO Er... maybe not
-kstest(OLS_metrics, 'chi2', args=(1,))
 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # Analysis of the significance of the OLS/GLS σ² histograms
