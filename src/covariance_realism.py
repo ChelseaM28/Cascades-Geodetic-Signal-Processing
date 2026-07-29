@@ -69,22 +69,22 @@ from signal_decomposition import bin_psd
 
 p349 = pd.read_json("p349.json", orient="records")
 p349['Date'] = pd.to_datetime(p349['Date'])
-#p380 = pd.read_json("p380.json", orient="records")
-#p380['Date'] = pd.to_datetime(p380['Date'])
-#p434 = pd.read_json("p434.json", orient="records")
-#p434['Date'] = pd.to_datetime(p434['Date'])
+p380 = pd.read_json("p380.json", orient="records")
+p380['Date'] = pd.to_datetime(p380['Date'])
+p434 = pd.read_json("p434.json", orient="records")
+p434['Date'] = pd.to_datetime(p434['Date'])
 #p441 = pd.read_json("p441.json", orient="records")
 #p441['Date'] = pd.to_datetime(p441['Date'])
 
-stations = {'p349': p349}#, 'p380': p380} #, 'p434': p434}#, 'p441': p441
+stations = {'p349': p349, 'p380': p380, 'p434': p434}#, 'p441': p441
 station_dates = {
-    "p349": p349['Date']#, "p380": p380['Date']#, "p434": p434['Date']#, "p441": p441['Date'],
+    "p349": p349['Date'], "p380": p380['Date'], "p434": p434['Date']#, "p441": p441['Date'],
 }
 
 station_lengths = {
     "p349": len(p349),
-    #"p380": len(p380),
-    #"p434": len(p434), 
+    "p380": len(p380),
+    "p434": len(p434), 
     #"p441": len(p441)
 }
 
