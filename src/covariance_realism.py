@@ -440,6 +440,7 @@ for key, value in OLS_metrics.items():
 gls_realism_metrics = [item for sublist in gls_realism_metrics for item in sublist]
 ols_realism_metrics = [item for sublist in ols_realism_metrics for item in sublist]
 
+#I am using kolmogorov smirnov test, which uses a *CDF*, not a plain histogram, haha.
 result_gls = kstest(gls_realism_metrics, 'chi2', args=(1,)) 
 result_ols = kstest(ols_realism_metrics, 'chi2', args=(1,))
 
