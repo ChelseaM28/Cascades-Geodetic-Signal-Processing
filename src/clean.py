@@ -57,6 +57,12 @@ print(missing)'''
 
 print("\nAfter previous data handling, I found there were no missing values in the dataset\n")
 
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+#Note on project limitation: Sampling Gaps  
+# * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
+# I assumed that a measurment was taken each day without checking for "skipped" days. 
+# This does not negatively affect my results, but it is better to not skip this step.
+
 
 #Step 3: Change date column type to datetime
 p349 = pd.read_csv("/workspaces/GNSS/data/P349.cwu.nam14.csv", skiprows=11, skipinitialspace=True, usecols=lambda x: x != 'Unnamed: 8')

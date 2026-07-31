@@ -63,7 +63,6 @@ with open("changepoints.json", "r") as f:
 changepoints = {key: np.array(value) for key, value in changepoints.items()}
 
 
-
 from signal_decomposition import bin_psd
 
 
@@ -180,17 +179,17 @@ def create_general_power_law_cov_matrix(station, k):
     H = np.zeros((n,n)) #I am going to convert h into matrix form, H
     for i in range(n): 
         #This is creating a lower triangular matrix by walking backward through h to populate rows.
-        H[i, :i+1] = h[i::-1]  #recal h[i::1] = h[start:stop:step]
+        H[i, :i+1] = h[i::-1]  #recall h[i::1] = h[start:stop:step]
     print(f"Completed general power-law covariance matrix for {station}.")
     J = H@np.transpose(H)#H@np.transpose(np.array(h[:n]))
     print("Completed 'create_general_power_law_cov_matrix.'")
     return H, h, J
-#J is a covariance matrix created from colored noise, dependent upon k. In my text, k seems 
+# J is a covariance matrix created from colored noise, dependent upon k. In my text, k seems 
 #       synonymous with k. J, when multiplied by var_colored (σ^2_colored), is the colored 
 #       component of covariance. Once used to calculate C, J is not needed again for monte carlo.
         
 
-#I never created persistent storage for the actual values in the PSD graph. 
+# I never created persistent storage for the coordinate pairs in the PSD graph (freq, power). 
 # So now I have to essentially REMAKE those graphs (without graphing them) and just save the value pairs.
 # A mistake I won't make again!
 def fit_psd_line(residual, fs=365.25, freq_cutoff=5):
@@ -202,7 +201,7 @@ def fit_psd_line(residual, fs=365.25, freq_cutoff=5):
     mask = (bin_centers < freq_cutoff) & (~np.isnan(bin_means))
     log_f = np.log10(bin_centers[mask])
     log_p = np.log10(bin_means[mask])
-    slope, intercept = np.polyfit(log_f, log_p, 1) #This must be a negative value for the cov matrix to work!
+    slope, intercept = np.polyfit(log_f, log_p, 1) #SLOPE *must* be a negative value for the cov matrix to work!
     print("Completed Fitting PSD Line for this station.")
     return slope, intercept
 
@@ -218,8 +217,6 @@ for station in stations:
         station_slopes[key], _ = fit_psd_line(residuals[key]) 
 print("Completed creating global station_slopes.")
 # I should also have segmented slopes according to the changepoints I calculated earlier. 
-# Additionally, the creation of this for loop means the alphas list I generated and saved 
-# earlier will likely be scratched.
 
 
 def power_at_freq(freq, slope, intercept):
@@ -241,8 +238,8 @@ def find_characterized_var(station, direction):
     # f always is. However, I needed the aforementioned ratio to hold true. 
     # It's a real idiosyncracy I'm wrestling with.  
 
-    #To fing var_white and var_colored, i needed a function 
-    # that takes a freq and outputs its power form a FITTED line of the PSD graph. 
+    # To fing var_white and var_colored, i needed a function 
+    # that takes a freq as input and outputs its power from a FITTED line of the PSD graph. 
     key = f"{station}_{direction}"
     slope, intercept = fit_psd_line(residuals[key])
     var_white = power_at_freq(white_freq, slope, intercept)
@@ -259,7 +256,7 @@ def create_parametric_C(station, direction):
     var_white, var_colored = find_characterized_var(station, direction)
     I = np.eye(n)
     #The typical emprirical covariance matrix estimation does not estimate noise well at long periods, 
-    #so a new method used used where we define a noise model and estimate the parameters of the noise moodel.
+    #so a new PARAMETRIC method used used where we define a noise model and estimate the parameters of the noise moodel.
     #This is the noise model when decomposed into its white and colored components:
     C = var_colored*J + var_white*I
     #The parameters we estimate are var_colored, k (which, recall, helps build J), and var_white.
@@ -283,8 +280,6 @@ def create_parametric_C(station, direction):
 #GLS: B = (X'C^(-1)X)^(-1)XC^(-1)y  <-- When estimating B, COVARIANCE is NOT assumed to be the identity matrix!  
 #The difference between the two is the weighted component, C, of GLS and its assumptions, etc etc...
 
-#@Brief: This section will verify all assumptions for my methodology are met before running Monte Carlo.
-
 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # Step 3: Use Monte Carlo to Generate N Synthetic Ground Station Series
@@ -292,8 +287,7 @@ def create_parametric_C(station, direction):
 
 #STEP by STEP: 
 #       I already have C, which is set permanently. 
-#       Hv = w #This is the filter used to create a vector of colored noise for a simulation.
-#       w is the vector of colored noise we need for each simulation that has the same overarching noise model with 
+#       w is a vector of colored noise we need for each simulation that has the same overarching noise model with 
 #       varying values at each epoch.
 #       H = summation(h_i) written in matrix format.
 #       h_i = binom(n,k) function and it varies by station direction.
@@ -323,7 +317,7 @@ def generate_monte_carlo_series(C, station, direction):
     #Brief: This section generate N synthetic ground station motion time series.
     for simulation in range(N):
         v= np.random.normal(loc=0.0, scale=1.0, size=size)
-        w = L@v   
+        w = L@v #The noise model applied to w. See slide deck for the math.
         #noise_models.append(w) #I will only begin saving persistently once I confirm the code works!
     #synthetic_series = [signal] + [noise]
     #synthetic_series = [X][B_true] + [noise]
@@ -360,8 +354,6 @@ def fit_LS_models(station, direction, all_synthetic_series, C , true_velocities_
     X_whitened = np.linalg.solve(L, X) # whitening t + sin(2pit) + cos(2pit) + ...
     y_whitened = np.linalg.solve(L, y) #I have to whiten all the displacement data too
     GLS_betas, *_ = np.linalg.lstsq(X_whitened, y_whitened, rcond=None)
-    #@Brief: This section will recover velocity estimates for OLS and GLS from each simulation
-    #AKA, create persistent storage. with open json etc etc.
 
     #Brief: This section will recover σ²_OLS and σ²_GLS from each simulation
     #Find residuals
@@ -375,22 +367,18 @@ def fit_LS_models(station, direction, all_synthetic_series, C , true_velocities_
     sigma_sqrd_GLS = np.sum(GLS_residuals**2, axis=0)/(n-p)
     Cov_GLS = np.linalg.inv(X_whitened.T @ X_whitened)
     GLS_var_formal = sigma_sqrd_GLS * Cov_GLS[1,1] 
-    print(f"sigma_sqrd_GLS: {sigma_sqrd_GLS}")
-    print(f"Cov_GLS: {Cov_GLS[1,1]}")
-    print(f"GLS_var_formal: {GLS_var_formal}")
+    
 
     sigma_sqrd_OLS = np.sum(OLS_residuals**2, axis=0)/(n-p)
     Cov_OLS = np.linalg.inv(X.T @ X)
     OLS_var_formal = sigma_sqrd_OLS * Cov_OLS[1, 1]   # index 1 = b = velocity
-    print(f"sigma_sqrd_OLS: {sigma_sqrd_OLS}")
-    print(f"Cov_OLS: {Cov_OLS[1,1]}")
-    print(f"OLS_var_formal: {OLS_var_formal}")
+    
 
     GLS_cov_realism_metric = (GLS_betas[1] - true_velocities_dict[station_direction])**2 / GLS_var_formal
-    OLS_cov_realism_metric = (OLS_betas[1] - true_velocities_dict[station_direction])**2 / OLS_var_formal #This creates z
+    OLS_cov_realism_metric = (OLS_betas[1] - true_velocities_dict[station_direction])**2 / OLS_var_formal #This creates z^2
 
     GLS_metric = GLS_cov_realism_metric
-    OLS_metric = OLS_cov_realism_metric #This creates z^2, which should be the Mahalanobis Distance metric from Poore
+    OLS_metric = OLS_cov_realism_metric #z^2 is the squared Mahalanobis Distance metric from Poore (at DoF = 1)
     print("Completed running 'fit_LS_models.")
     return GLS_metric, OLS_metric
     
@@ -399,10 +387,6 @@ def fit_LS_models(station, direction, all_synthetic_series, C , true_velocities_
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # Step 5: Create Normalized σ² Vectors (Uncertainty Realism Metrics) for Comparison 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
-# It is helpful to recall that z² is the Mahalanobis Distance Metric from Poore et al. at n = 1
-
-
-
 GLS_metrics = {}
 OLS_metrics = {}
 print("* - * - * - * - * Time to begin the computational churl * - * - * - * - * \n")
@@ -411,10 +395,9 @@ for station in stations:
         station_direction = str(station) + "_" + str(dir)
         print(f"* - * - * - * - * {station_direction} * - * - * - * - *")
         C = create_parametric_C(station, dir) 
-        #H, _, _ = create_general_power_law_cov_matrix(station, station_slopes[station_direction])
 
         synthetic_series, true_velocities_dict = generate_monte_carlo_series(C, station, dir) 
-        GLS_metric, OLS_metric = fit_LS_models(station, dir, synthetic_series, C, true_velocities_dict) #This pipeline is a little messy. 'll clean it up.
+        GLS_metric, OLS_metric = fit_LS_models(station, dir, synthetic_series, C, true_velocities_dict) 
         GLS_metrics[station_direction] = GLS_metric
         OLS_metrics[station_direction] = OLS_metric
 
@@ -433,11 +416,11 @@ print("\n\n* - * - * - * - * PERFORMING DISTRUBUTION COMPARISON * - * - * - * - 
 gls_realism_metrics = []
 ols_realism_metrics = []
 for key, value in GLS_metrics.items():
-    gls_realism_metrics.append(value)
+    gls_realism_metrics.append(value) #I needed to get this dictionary of key: array into a list of lists.
 for key, value in OLS_metrics.items():
-    ols_realism_metrics.append(value)
+    ols_realism_metrics.append(value) # so the format is currently[[500 OLS metrics for station_direction], [500 OLS metrics for station_direction_2], [...], etc]
 
-gls_realism_metrics = [item for sublist in gls_realism_metrics for item in sublist]
+gls_realism_metrics = [item for sublist in gls_realism_metrics for item in sublist] #This now makes it a flat list [d, d, d, d, d, etc]
 ols_realism_metrics = [item for sublist in ols_realism_metrics for item in sublist]
 
 #I am using kolmogorov smirnov test, which uses a *CDF*, not a plain histogram, haha.
@@ -450,8 +433,7 @@ print(f"OLS DISTRIBUTION TEST RESULTS: \n{result_ols}")
 # @Brief: This section will plot OLS/GLS z² values on a histogram
 
 print("\n\n* - * - * - * - * Generating Visualizations * - * - * - * - * \n")
-m = 100 # if i were doing a test, this would need to be a specific number
-
+m = 100 
 
 plt.hist(gls_realism_metrics, bins=m, edgecolor='black')
 plt.title("Histogram of GLS Realism Metrics")
@@ -461,7 +443,6 @@ plt.legend()
 plt.tight_layout()
 plt.savefig("GLS_Histogram.png", dpi=120)
 print("Saved GLS_Histogram")
-
 
 
 plt.hist(ols_realism_metrics, bins=m, edgecolor='black')
@@ -477,10 +458,11 @@ print("Saved OLS_Histogram")
 # Analysis of the significance of the OLS/GLS σ² histograms
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 
-
-
+#See the slidedeck in the repository / in the ReadMe for conclusion
 
 # What a doozy!
+
+
 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # Future Modifications For this project

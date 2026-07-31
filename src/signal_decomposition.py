@@ -87,7 +87,6 @@ import matplotlib.pyplot as plt
 with open("metadata.json", "r") as f:
     metadata = json.load(f) #I dont actually use this in this script.
 
-
 p349 = pd.read_json("p349.json", orient="records")
 p349['Date'] = pd.to_datetime(p349['Date'])
 
@@ -244,7 +243,7 @@ To characterize the residuals (characterize the noise), I will decompose the sig
 which can be understood as patterns within the data which characterize the noise.
 The underlying mechanic is a discrete (due to sampling) fourier transform which 
 transforms the displacement signal into frequencies. 
-The fourier transform allows non-obvious patterns within the signal to be revealed.
+The fourier transform allows non-obvious patterns within the signal to be revealed before your very eyes.
 
 
 Any pattern that repeats itself in this time series can be described by its frequency. 
@@ -260,7 +259,9 @@ In the fourier sense, each signal is the sum of sinusoids of different frequenci
 
 Power Spectral Density (PSD) is a decomposition of the signal across different frequencies (patterns).
 PSD, tells, for every frequency of sinusoid, how much power the signal contains at that frequency. 
-Power is mathematically the average of the squared amplitude of a signal. 
+
+   ##Power is mathematically the average of the squared amplitude of a signal.## 
+
 It is sometimes defined as energy per unit of time, which in this context can be analog to the 
 strength of the frquency/ the strength of the noise frequency. In this case I will refer to power as variance, as 
 variance is also the average of a squared quantity (avg of squared distance from the mean).
@@ -290,15 +291,13 @@ Otherwise, we'd have a pretty bad idea of how trashy our model is.
 are tracking the deviation of stations' movement from the plate due to seasonal loading signals, post-earthquake
 deformation, etc. Recall NAM14 (the data I downloaded, see data folder) removes plate movement signals. 
 This essentially 'centers data around the mean,' preventing large tectonic movement from hiding smaller signals. 
-
-
-
 '''
 
 #@Brief: Scipy Periodogram
 '''
 Periodogram takes my residual array and sampling frequency to output frequencies and power (variances)
 Periodogram allows me to construct a PSD graph without the need to write out the operations done to the amplitude spectrum dervied from the fourier transform. 
+
 Assumptions:
 Periodogram requires that the mean and the variance of the signal are the same no matter where I sample. (stationary process)
 For learning purposes I assume the stationarity assumption is met.
@@ -361,9 +360,9 @@ residuals = {
 
 PSD_set = {}
 
-for key, value in residuals.items(): #Remember, must use residuals.items() not just the dict name 'residuals'
+for key, value in residuals.items():
     freqs, power = periodogram(value, fs=365.25)
-    PSD_set[key] = (freqs, power) #Remember, freqs, power should be a tuple to allow for simple unpacking later on.
+    PSD_set[key] = (freqs, power) 
 
 
 print("Plotting loglog PSD plots.")
@@ -386,22 +385,21 @@ def bin_psd(freqs, power, n_bins=30):
     return bin_centers, bin_means
 
 
-#Looking at the red line, I can clearly see that there is a flattening happening at around 10^(0.7). 
+# Looking at the red line, I can clearly see that there is a flattening happening at around 10^(0.7). 
 # The flat section represent white noise, while the downward sloping section is colored. Maybe pink.
+# NOTE: Let's set a line of demarcation at 10^(0.7), aorund 5 cycles/year
 
 # NOTE: This shorter record for P441 has generally white noise throughout the dataset. 
-#         There is not enough of a clear downward slope for polyfit to catch colored noise
+#       There is not enough of a clear downward slope for polyfit to catch colored noise. Consider a Kolmogorov test without p441.
 
 
-
-#NOTE:Let's set a line of demarcation at 10^(0.7), aorund 5 cycles/year
 
 #@Brief: This section will fit the binned data for frequencies below my cutoff (for colored noise)
-#For context, log(PSD)=log(A)−αlog(f). Recall we are plotting (frew, power) pairs. This function is in
-#y = mx + b format, with each term having the log applied.
-# α is the noise component/slope. log(f) is the input. log(A) is the intercept. log(PSD) is power.
+# For context, log(PSD)=log(A)−αlog(f). Recall we are plotting (freq, power) pairs. This function is in
+# y = mx + b format, with each term having the log applied.
+# α is the noise component/slope. log(f) is the input. log(A) is t  he intercept. log(PSD) is power.
 
-#NOTE: CHARACTERIZE NOISE TYPES AS FOLLOWS: white noise (α≈0), flicker (α≈1), & random walk (α≈2)
+#CHARACTERIZE NOISE TYPES AS FOLLOWS: white noise (α≈0), flicker (α≈1), & random walk (α≈2)
 #I need to find α for each direction for each station.
 
 #np.polyfit(x, y, 1) fits a line to the data and returns [slope, intercept]
