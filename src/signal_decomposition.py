@@ -74,14 +74,122 @@ Got me?
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 
 import os
-os.chdir("/workspaces/GNSS/data")
+os.chdir("/workspaces/GNSS/data") #TODO: PRIOR TO SHOWING CODE, need to test filepath after the refactor.
 import pandas as pd
 import json
 import numpy as np
 #PSD imports
 from scipy.signal import periodogram
 import matplotlib.pyplot as plt
+from scipy.stats import binned_statistic
 
+def bin_psd(freqs, power, n_bins=30):
+    # skip the zero-frequency point
+    freqs = freqs[1:]
+    power = power[1:]
+    
+    log_bins = np.logspace(np.log10(freqs.min()), np.log10(freqs.max()), n_bins)
+    bin_means, bin_edges, _ = binned_statistic(freqs, power, statistic='mean', bins=log_bins)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+    
+    return bin_centers, bin_means
+
+class Station:
+    def __init__(self, station_id):
+        print(f"Initializing station {station_id}.")
+        self.directions = ["North", "East", "Vert"]
+        self.station_id = station_id
+        self.dataframe = pd.read_json(str(self.station_id) + ".json", orient = "records")
+        self.alphas = {}
+        self.betas = {}
+        self.y_vectors = {}
+        self.residuals = {}
+        self.time_elapsed = []
+        self.periodograms = {}
+
+    def time_series_data_conversion(self):
+        self.dataframe['Date'] = pd.to_datetime(self.dataframe['Date'])
+        #calculating the elapsed time from epoch 0 for each row and converting to days
+        self.time_elapsed = (self.dataframe['Date'] - self.dataframe['Date'].iloc[0] ).dt.days / 365.25
+        
+    
+    def build_design_matrix(self):
+        self.X_matrix = np.column_stack(
+            [np.ones(len(self.time_elapsed)),
+            self.time_elapsed,
+            np.sin(2*np.pi*self.time_elapsed),
+            np.cos(2*np.pi*self.time_elapsed),
+            np.sin(4*np.pi*self.time_elapsed),
+            np.cos(4*np.pi*self.time_elapsed)
+        ])
+    
+    def build_systems(self):
+        for direction in self.directions:
+            #building y vectors
+            station_direction = str(direction) + "_" + str(self.station_id)
+            self.y_vectors[station_direction] = self.dataframe[str(direction) + " (mm)"].values
+            #building betas
+            self.betas[station_direction], _, _, _ = np.linalg.lstsq(self.X_matrix, self.y_vectors[station_direction], rcond=None) 
+            self.residuals[station_direction] = self.y_vectors[station_direction] - self.X_matrix @ self.betas[station_direction]
+
+    def compute_psd_bins(self):
+        for key, value in self.residuals.items():
+            freqs, power = periodogram(value, fs=365.25)
+            self.periodograms[key] = (freqs, power)
+            #binning
+            freqs = freqs[1:]
+            power = power[1:]
+            log_bins = np.logspace(np.log10(freqs.min()), np.log10(freqs.max()), 30)
+            bin_means, bin_edges, _ = binned_statistic(freqs, power, statistic='mean', bins=log_bins)
+            bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+            mask = (bin_centers < 5) & (~np.isnan(bin_means))
+            fit_freqs = bin_centers[mask]
+            fit_power = bin_means[mask]
+            log_f = np.log10(fit_freqs)
+            log_p = np.log10(fit_power)
+            slope, intercept = np.polyfit(log_f, log_p, 1)
+            alpha = -slope
+            self.alphas[key] = alpha 
+
+    def plot_psd(self):
+        for key, (freqs, power) in self.periodograms.items():
+            plt.figure()
+            plt.loglog(freqs[1:], power[1:]) #We cannot plot the (0,0 pair)
+            plt.xlabel("Frequency (cycles/year)")
+            plt.ylabel("Power (Variance)")
+            plt.title(f"Power Spectral Density — {key}")
+            plt.tight_layout()
+            plt.savefig(str(key)+".png", dpi=120)
+            #plt.close() keep this in mind for memory. maybe array processing or other large builds.
+            
+
+    def save_results(self):
+        with open(f"{self.station_id}_alphas.json", "w") as f:
+            json.dump(self.alphas, f, indent=2)
+        with open(f"{self.station_id}_betas.json", "w") as f:
+            json.dump({k: v.tolist() for k, v in self.betas.items()}, f, indent=2)
+        with open(f"{self.station_id}_residuals.json", "w") as f:
+            json.dump({k: v.tolist() for k, v in self.residuals.items()}, f, indent=2)
+        with open(f"{self.station_id}_X_matrix.json", "w") as f:
+            json.dump(self.X_matrix.tolist(), f, indent=2)
+
+    def process_station(self):
+        self.time_series_data_conversion()
+        self.build_design_matrix()
+        self.build_systems()
+        self.compute_psd_bins()
+        self.plot_psd()
+        self.save_results()
+
+for station_id in ["p349", "p380", "p434", "p441"]:
+    station = Station(station_id)
+    station.process_station()
+
+
+
+
+
+# //// OLD CODE BELOW //// PRIOR TO REFACTORING ////
 
 
 with open("metadata.json", "r") as f:
@@ -107,6 +215,8 @@ p441['Date'] = pd.to_datetime(p441['Date'])
 #@Brief: This section will utilize datetime to perform datetime arithmetic and find t. 
 #The specific dataset I use is not arbitrary. Each station dataset has a different number of elapsed days, so i have to repeat this process four times.
 # The formula to convert the number of days to decimal years and get time deltas (changes in time) is given as:
+
+
 
 # TIME SERIES EXPLANATION
 #I take the date COLUMN as a series and subtract the value of the first row from EACH item in the series
@@ -371,18 +481,7 @@ print("Plotting loglog PSD plots.")
 #@Brief: In this section I will be printing out many many plots. (Most loops have been moved to scratch.py)
 # Let's see if the power difference between the two frequency halves is truly downward then flat (colored then white).
 #I will use bins to stabilize the trend line.
-from scipy.stats import binned_statistic
 
-def bin_psd(freqs, power, n_bins=30):
-    # skip the zero-frequency point
-    freqs = freqs[1:]
-    power = power[1:]
-    
-    log_bins = np.logspace(np.log10(freqs.min()), np.log10(freqs.max()), n_bins)
-    bin_means, bin_edges, _ = binned_statistic(freqs, power, statistic='mean', bins=log_bins)
-    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
-    
-    return bin_centers, bin_means
 
 
 # Looking at the red line, I can clearly see that there is a flattening happening at around 10^(0.7). 
