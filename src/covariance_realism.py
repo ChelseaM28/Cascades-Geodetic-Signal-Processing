@@ -350,6 +350,14 @@ def fit_LS_models(station, direction, all_synthetic_series, C , true_velocities_
     # Instead of copmuting this, I use the Cholesky decomposition which utilizes a unique, lower 
     # triangular matrix L to whiten (orthagonalize) all correlated variables. Cholesky happens to 
     # assume an ordered dataset, which makes it helpful for time series data whitening.
+    
+
+    
+    '''This, of course, doesn't validate C, but GLS itself. IoW, C is a stable estimation, not a perfect reflection of reality. 
+       In the literature, rather than reconstructing C until GLS converges, they derive it parametrically.
+       Usually, GLS is then compared against real truth, but as stated before, I only have simualted truth. 
+       This project instead focuses on quantifying the extent of overconfidence in OLS versus GLS.
+       Anyway, I'd love to fiddle with C a little further and see how that affects GLS.'''
     L = np.linalg.cholesky(C)
     X_whitened = np.linalg.solve(L, X) # whitening t + sin(2pit) + cos(2pit) + ...
     y_whitened = np.linalg.solve(L, y) #I have to whiten all the displacement data too
