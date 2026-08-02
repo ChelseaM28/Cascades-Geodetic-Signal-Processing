@@ -3,7 +3,7 @@
 This script will import and clean the positional data from four ground stations along the 
 cascades region.
 Jun 20, 2026
-Version 1
+Version 2
 Chelsea Momoh
 '''
 

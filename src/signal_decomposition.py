@@ -3,7 +3,7 @@
 This script will explain and implement signal decomposition of four ground stations along the 
 cascades region.
 Jun 26, 2026
-Version 1
+Version 2
 Chelsea Momoh
 '''
 
