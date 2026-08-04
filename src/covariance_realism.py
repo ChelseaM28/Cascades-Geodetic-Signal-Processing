@@ -140,14 +140,14 @@ class Station:
         h = [1] 
         
         k = self.slope
-        for i in range(n): 
+        for i in range(self.n): 
             index = i + 1
             h.append((index - (k/2) - 1)*(h[index-1]/index)) #This is how h is defined in Tero et al
-        self.H = np.zeros((n,n)) #I am going to convert h into matrix form, H
-        for i in range(n): 
+        self.H = np.zeros((self.n,self.n)) #I am going to convert h into matrix form, H
+        for i in range(self.n): 
             #This is creating a lower triangular matrix by walking backward through h to populate rows.
             self.H[i, :i+1] = h[i::-1]  #recall h[i::1] = h[start:stop:step]
-        print(f"Completed general power-law covariance matrix for {station}.")
+        print(f"Completed general power-law covariance matrix for {self.station_direction}.")
         self.J = self.H@np.transpose(self.H)#H@np.transpose(np.array(h[:n]))
         print("Completed 'create_general_power_law_cov_matrix.'")
         return self.H, self.J
@@ -183,8 +183,8 @@ class Station:
         return self.C
     
     def generate_monte_carlo_series(self):
-        VELOCITY = betas[station_direction][1]
-        a, c, d, e, f = betas[station_direction][[0, 2, 3, 4, 5]]
+        VELOCITY = betas[self.station_direction][1]
+        a, c, d, e, f = betas[self.station_direction][[0, 2, 3, 4, 5]]
         N = 500 #subject to change.
         true_velocities = VELOCITY
         self.L = np.linalg.cholesky(self.C) 
@@ -197,7 +197,7 @@ class Station:
         #synthetic_series = [X][B_true] + [noise]
             synthetic_series = X_matrices[self.station_id]@[a, VELOCITY, c, d, e, f] + w
             self.series_list.append(synthetic_series)
-            self.true_velocities.append[VELOCITY]
+            self.true_velocities.append(VELOCITY)
         print("Completed running 'generate_monte_carlo_series.'")
         return self.series_list, self.true_velocities
     
@@ -208,7 +208,7 @@ class Station:
         y = np.stack(self.series_list, axis=1) #Does this make sense --> check
         OLS_betas, *_ = np.linalg.lstsq(X, y, rcond=None)
         OLS_residuals = y - X@OLS_betas
-        sigma_sqrd_OLS = np.sum(OLS_residuals**2, axis=0)/(self.n-p)
+        sigma_sqrd_OLS = np.sum(OLS_residuals**2, axis=0)/(self.n-self.p)
         Cov_OLS = np.linalg.inv(X.T @ X)
         OLS_var_formal = sigma_sqrd_OLS * Cov_OLS[1, 1]   # index 1 = b = velocity
         OLS_cov_realism_metric = (OLS_betas[1] - self.true_velocities)**2 / OLS_var_formal #This creates z^2
@@ -229,7 +229,7 @@ class Station:
         sigma_sqrd_GLS = np.sum(GLS_residuals**2, axis=0)/(self.n-self.p)
         Cov_GLS = np.linalg.inv(X_whitened.T @ X_whitened)
         GLS_var_formal = sigma_sqrd_GLS * Cov_GLS[1,1] 
-        GLS_cov_realism_metric = (GLS_betas[1] - true_velocities_dict[station_direction])**2 / GLS_var_formal
+        GLS_cov_realism_metric = (GLS_betas[1] - self.true_velocities)**2 / GLS_var_formal
         self.GLS_metrics = GLS_cov_realism_metric
 
         return self.GLS_metrics, self.OLS_metrics
@@ -256,8 +256,7 @@ def plot_histograms(model, realism_metrics):
         
 station_directions = {"p349_north", "p349_east", "p349_vert",
                       "p380_north", "p380_east", "p380_vert",
-                      "p434_north", "p434_east", "p434_vert",
-                      "p441_north", "p441_east", "p441_vert"}
+                      "p434_north", "p434_east", "p434_vert"}#, "p441_north", "p441_east", "p441_vert"}
 
 
 def main():
@@ -272,6 +271,8 @@ def main():
         gls_realism_metrics.append(GLS_metrics)
         ols_realism_metrics.append(OLS_metrics)
 
+    gls_realism_metrics = [item for sublist in gls_realism_metrics for item in sublist]
+    ols_realism_metrics = [item for sublist in ols_realism_metrics for item in sublist]
     plot_histograms("ols", ols_realism_metrics)
     plot_histograms("gls", gls_realism_metrics)
 
