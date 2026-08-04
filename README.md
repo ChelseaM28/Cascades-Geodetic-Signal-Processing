@@ -12,9 +12,9 @@ Motivated by the geodetic signal processing research of Dr. Amanda Thomas's Obse
 ---
 
 ## Find Project Summary Slide Deck here: 
-```
+
 [Project Summary Slide Deck](https://docs.google.com/presentation/d/1xcmq1OXUoGj9-qtJU5aqmGezUfVdDAJZnPbsdd7PFy0/edit?usp=sharing)
-```
+
 
 ---
 
