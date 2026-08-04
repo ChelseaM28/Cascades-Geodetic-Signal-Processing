@@ -283,11 +283,21 @@ def main():
     print(f"OLS RESULTS:\n{result_ols}")
 
 main()
+
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # Analysis of the significance of the OLS/GLS σ² histograms
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 
 #See the slidedeck in the repository / in the ReadMe for conclusion
+'''
+This, of course, doesn't validate C, but GLS itself. IoW, C is a stable estimation, not a perfect reflection of reality. 
+In the literature, rather than reconstructing C until GLS converges, they derive it parametrically.
+Usually, GLS is then compared against real truth, but as stated before, I only have simualted truth. 
+This project instead focuses on quantifying the extent of overconfidence in OLS versus GLS.
+Anyway, I'd love to fiddle with C a little further and see how that affects GLS.
+'''
+    
+
 
 # What a doozy!
 
@@ -387,12 +397,7 @@ main()
 #       v is a vector with independent and identically distributed (IID) Gaussian noise
 #       
     
-'''This, of course, doesn't validate C, but GLS itself. IoW, C is a stable estimation, not a perfect reflection of reality. 
-       In the literature, rather than reconstructing C until GLS converges, they derive it parametrically.
-       Usually, GLS is then compared against real truth, but as stated before, I only have simualted truth. 
-       This project instead focuses on quantifying the extent of overconfidence in OLS versus GLS.
-       Anyway, I'd love to fiddle with C a little further and see how that affects GLS.'''
-    
+
 
 # * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * -
 # Future Modifications For this project
