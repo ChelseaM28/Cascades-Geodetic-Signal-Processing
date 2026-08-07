@@ -1,15 +1,15 @@
-# GNSS Trajectory Time Series Analysis V2
+# GNSS Trajectory Time Series Analysis
 **June - July 2026**
 
 ---
 
 ## Overview
 
-Version 2: I refactored this code to improve maintainability. 
+This project quantifies how much least squares underestimates uncertainty when noise is colored rather than white/independent. It performs statistical decomposition and noise characterization of ground motion time series from four continuously operating GNSS (Global Navigation Satellite System) stations in the Pacific Northwest and Northern California (the Cascades). Data is sourced from the EarthScope GAGE facility, processed by Central Washington University (CWU) in the NAM14 North America-fixed reference frame.
 
-This project quantifies how much least squares underestimates uncertainty when noise is colored rather than white/independent. It performs statistical decomposition and noise characterization of ground motion time series from four continuously operating GNSS (Global Navigation Satellite System) stations in the Pacific Northwest and Northern California. Data is sourced from the EarthScope GAGE facility, processed by Central Washington University (CWU) in the NAM14 North America-fixed reference frame.
+## Refactoring for V2
 
-
+Version 2: I refactored most code (save for changepoint detection) to improve maintainability. I implemented OOP to simplify the code. This was extremely helpful in the covariance realism script, which is the most complex script in the project.
 
 ---
 
