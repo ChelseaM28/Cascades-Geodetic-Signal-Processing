@@ -9,7 +9,7 @@ This project quantifies how much least squares underestimates uncertainty when n
 
 ## Refactoring for V2
 
-Version 2: I refactored most code (save for changepoint detection) to improve maintainability. I implemented OOP to simplify the code. This was extremely helpful in the covariance realism script, which is the most complex script in the project.
+Version 2: I refactored clean.py, covariance_realism.py, and signal_decomposition.py to improve maintainability. I implemented OOP to simplify the code. This was extremely helpful in the covariance realism script, which is the most complex script in the project.
 
 ---
 
