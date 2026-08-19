@@ -322,7 +322,7 @@ Anyway, I'd love to fiddle with C a little further and see how that affects GLS.
 #     WHY? - In order to normalize the errors, we are doing z = (B_estimated - B_true)/σ_formal so the Var(z) = σ^2_true/σ^2_formal
 #            In other words, we are dividing actual uncertainty by what the model thinks its uncertainty is. Z^2 is actually the Mahalanobis distance at n = 1.
 #            This normalization will result in a chi-sqrd distribution. (Mahalanobis distance, btw, is essentially the distance between a point and a distribution.)
-#            WHY chi sqrd? Unfortunately, I must settle by refering you to Poore and saying, "The literature said so." 
+#            WHY chi sqrd? Chi sqrd is the sqr of the standard normal distribution. Recall our metrics after standardization are ~N and are squared.
 #
 # The issue we will encounter is OLS is BLIND to colored noise, 
 #     WHAT? - In other words, rather than considering correlated errors (σ^2_OLS@C), OLS assume the error is independent, and thus operates 
